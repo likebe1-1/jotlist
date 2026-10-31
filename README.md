@@ -8,7 +8,7 @@
 
 一款克制的 Android 待办 + 笔记应用。没有账号，没有广告，没有云端。
 
-[![Android CI](https://github.com/USERNAME/jotlist/actions/workflows/android.yml/badge.svg)](https://github.com/USERNAME/jotlist/actions/workflows/android.yml)
+[![Android CI](https://github.com/likebe1-1/jotlist/actions/workflows/android.yml/badge.svg)](https://github.com/likebe1-1/jotlist/actions/workflows/android.yml)
 ![minSdk](https://img.shields.io/badge/minSdk-26%20(Android%208.0)-3DDC84)
 ![targetSdk](https://img.shields.io/badge/targetSdk-35-3DDC84)
 ![license](https://img.shields.io/badge/license-MIT-blue)
