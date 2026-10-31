@@ -5,7 +5,7 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 底色：保留纯色观感，加一层很轻的纵向渐变，避免整块死板 -->
+    <!-- 深蓝到浅紫的品牌渐变 -->
     <path android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">
             <gradient
@@ -16,10 +16,13 @@
                 android:endY="108">
                 <item
                     android:offset="0.0"
-                    android:color="#FF4958C6" />
+                    android:color="#FF1B2E7B" />
+                <item
+                    android:offset="0.5"
+                    android:color="#FF4B3A9E" />
                 <item
                     android:offset="1.0"
-                    android:color="#FF35449B" />
+                    android:color="#FFA98BF5" />
             </gradient>
         </aapt:attr>
     </path>

@@ -55,8 +55,9 @@ internal fun markWelcomeShown(context: Context) {
         .apply()
 }
 
-private val BrandStart = Color(0xFF4A5BC4)
-private val BrandEnd = Color(0xFF00796B)
+private val BrandStart = Color(0xFF16225E)
+private val BrandMid = Color(0xFF4B3A9E)
+private val BrandEnd = Color(0xFFA98BF5)
 
 /**
  * 首次启动的品牌页，视觉与商店特色图保持一致：
@@ -68,7 +69,7 @@ internal fun WelcomeScreen(onStart: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .testTag("welcome_screen")
-            .background(Brush.linearGradient(listOf(BrandStart, BrandEnd)))
+            .background(Brush.linearGradient(listOf(BrandStart, BrandMid, BrandEnd)))
     ) {
         Column(
             modifier = Modifier
@@ -119,8 +120,9 @@ internal fun WelcomeScreen(onStart: () -> Unit) {
                     .testTag("welcome_start"),
                 shape = RoundedCornerShape(27.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = BrandStart
+                    // 底部是浅紫色，白色按钮会糊在背景里；改用深蓝实心 + 白字。
+                    containerColor = BrandStart,
+                    contentColor = Color.White
                 )
             ) {
                 Text("开始使用", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
@@ -128,7 +130,7 @@ internal fun WelcomeScreen(onStart: () -> Unit) {
             Spacer(Modifier.height(12.dp))
             Text(
                 text = "无需登录 · 无需联网",
-                color = Color.White.copy(alpha = 0.7f),
+                color = BrandStart.copy(alpha = 0.72f),
                 fontSize = 13.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
