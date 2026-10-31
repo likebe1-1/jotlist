@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_title">待办</string>
+    <string name="widget_add_task">添加待办</string>
+    <string name="widget_empty">暂无待办</string>
+    <string name="widget_description">快速查看和完成待办</string>
+    <string name="widget_complete_task">完成：%1$s</string>
+</resources>
