@@ -21,3 +21,5 @@ keystore.properties
 
 # 安全审计/本地临时目录
 .audit/
+# 沙箱 ACL 修复工具的本地记录
+.acl-recovery/

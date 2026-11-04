@@ -316,21 +316,26 @@ internal fun NotesScreen(
             title = { Text("删除笔记？") },
             text = { Text("“${note.title}”将被删除。") },
             confirmButton = {
-                TextButton(onClick = {
-                    notes.remove(note)
-                    var todosChanged = false
-                    todos.indices.forEach { index ->
-                        if (todos[index].linkedNoteId == note.id) {
-                            todos[index] = todos[index].copy(linkedNoteId = null)
-                            todosChanged = true
+                TextButton(
+                    onClick = {
+                        notes.remove(note)
+                        var todosChanged = false
+                        todos.indices.forEach { index ->
+                            if (todos[index].linkedNoteId == note.id) {
+                                todos[index] = todos[index].copy(linkedNoteId = null)
+                                todosChanged = true
+                            }
                         }
-                    }
-                    if (todosChanged) {
-                        saveTodoList(context, todos.toList())
-                        TodoWidgetProvider.refresh(context)
-                    }
-                    pendingDelete = null
-                }) { Text("删除") }
+                        if (todosChanged) {
+                            saveTodoList(context, todos.toList())
+                            TodoWidgetProvider.refresh(context)
+                        }
+                        pendingDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) { Text("删除") }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) { Text("取消") }
@@ -343,23 +348,30 @@ internal fun NotesScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text("笔记", style = MaterialTheme.typography.headlineMedium)
+        JotlistHeader(title = "笔记") {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Button(
+                FilledTonalButton(
                     onClick = {
                         editorTarget = null
                         showEditor = true
                         onEditorVisibilityChange(true)
                     },
                     enabled = isLoaded,
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
                     modifier = Modifier.testTag("add_note")
                 ) {
-                    Text("新建笔记")
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "写笔记",
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
                 }
                 Box {
                     IconButton(
@@ -441,16 +453,13 @@ internal fun NotesScreen(
             }.sortedByDescending { it.updatedAt }
             if (visibleNotes.isEmpty() && !showInvalidDataWarning) {
                 item {
-                    Text(
-                        text = if (notes.isEmpty()) {
-                            "还没有笔记，点击“新建笔记”开始记录。"
+                    EmptyState(
+                        title = if (notes.isEmpty()) "还没有笔记" else "这个标签下没有笔记",
+                        subtitle = if (notes.isEmpty()) {
+                            "点右上角「写笔记」，或从桌面笔记组件快速收集"
                         } else {
-                            "没有使用此标签的笔记。"
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 32.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                            "换个标签，或清掉筛选"
+                        }
                     )
                 }
             }

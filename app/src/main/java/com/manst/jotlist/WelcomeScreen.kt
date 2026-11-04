@@ -182,6 +182,19 @@ private fun ChecklistGlyph(modifier: Modifier = Modifier) {
     }
 }
 
+/** 单色版品牌字形，供空状态等浅色场景复用。 */
+@Composable
+internal fun BrandGlyph(modifier: Modifier = Modifier, color: Color) {
+    Canvas(modifier = modifier) {
+        val scale = size.minDimension / 24f
+        val origin = Offset(
+            (size.width - 24f * scale) / 2f,
+            (size.height - 24f * scale) / 2f
+        )
+        drawChecklist(origin, scale, color, Offset.Zero)
+    }
+}
+
 private fun DrawScope.drawChecklist(
     origin: Offset,
     scale: Float,

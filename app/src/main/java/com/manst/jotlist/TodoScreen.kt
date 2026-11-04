@@ -414,11 +414,16 @@ internal fun TodoAppScreen(
             title = { Text("确认删除") },
             text = { Text("确定要删除这项任务吗？") },
             confirmButton = {
-                TextButton(onClick = {
-                    cancelReminder(context, target)
-                    todoList.remove(target)
-                    pendingDelete = null
-                }) { Text("删除") }
+                TextButton(
+                    onClick = {
+                        cancelReminder(context, target)
+                        todoList.remove(target)
+                        pendingDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) { Text("删除") }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) { Text("取消") }
@@ -433,11 +438,16 @@ internal fun TodoAppScreen(
             title = { Text("清空已完成") },
             text = { Text("确定要清空所有已完成的任务吗？") },
             confirmButton = {
-                TextButton(onClick = {
-                    todoList.filter { it.isDone }.forEach { cancelReminder(context, it) }
-                    todoList.removeAll { it.isDone }
-                    showClearConfirm = false
-                }) { Text("清空") }
+                TextButton(
+                    onClick = {
+                        todoList.filter { it.isDone }.forEach { cancelReminder(context, it) }
+                        todoList.removeAll { it.isDone }
+                        showClearConfirm = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) { Text("清空") }
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirm = false }) { Text("取消") }
@@ -649,6 +659,7 @@ internal fun TodoAppScreen(
     }
 
     // 逾期重复任务完成时，让用户决定下一次从哪天开始。
+    // M3 没有三键对话框：这里把三个选项做成正文里的全宽按钮，语义和视觉都更清楚。
     recurringChoiceFor?.let { item ->
         AlertDialog(
             onDismissRequest = {
@@ -657,25 +668,35 @@ internal fun TodoAppScreen(
             },
             title = { Text("这是重复任务") },
             text = {
-                Text("「${item.text}」已经逾期。下一次从哪里开始算？")
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    completeTask(item, RecurrenceCompletionChoice.CONTINUE_FROM_TODAY)
-                    recurringChoiceFor = null
-                }) { Text("从今天继续") }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(onClick = {
-                        completeTask(item, RecurrenceCompletionChoice.SKIP)
-                        recurringChoiceFor = null
-                    }) { Text("跳过本次") }
-                    TextButton(onClick = {
-                        completeTask(item, RecurrenceCompletionChoice.PAUSE)
-                        recurringChoiceFor = null
-                    }) { Text("暂停重复") }
+                Column {
+                    Text("「${item.text}」已经逾期。下一次从哪里开始算？")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(
+                        onClick = {
+                            completeTask(item, RecurrenceCompletionChoice.CONTINUE_FROM_TODAY)
+                            recurringChoiceFor = null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("从今天继续") }
+                    TextButton(
+                        onClick = {
+                            completeTask(item, RecurrenceCompletionChoice.SKIP)
+                            recurringChoiceFor = null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("跳过本次") }
+                    TextButton(
+                        onClick = {
+                            completeTask(item, RecurrenceCompletionChoice.PAUSE)
+                            recurringChoiceFor = null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("暂停重复") }
                 }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { recurringChoiceFor = null }) { Text("取消") }
             }
         )
     }
@@ -686,16 +707,7 @@ internal fun TodoAppScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "待办",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
+        JotlistHeader(title = "待办") {
             Box {
                 IconButton(onClick = { moreMenuExpanded = true }) {
                     Icon(Icons.Default.MoreVert, contentDescription = "更多选项")
@@ -878,12 +890,42 @@ internal fun TodoAppScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // 状态：只在「全部 / 进行中 / 已完成」之间切换
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.weight(1f)) {
+                TodoFilter.entries.forEachIndexed { index, option ->
+                    SegmentedButton(
+                        selected = filter == option,
+                        onClick = { filter = option },
+                        colors = SegmentedButtonDefaults.colors(
+
+                            activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+
+                            activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+
+                        ),
+
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = TodoFilter.entries.size
+                        ),
+                        modifier = Modifier.testTag("filter_${option.name}")
+                    ) {
+                        Text(option.label, maxLines = 1)
+                    }
+                }
+            }
+            // 分类是另一个正交维度，单独一个下拉，不再和状态混在一个菜单里
             Box {
                 OutlinedButton(
                     onClick = { categoryMenuExpanded = true },
-                    modifier = Modifier.testTag("category_filter")
+                    modifier = Modifier.testTag("category_filter"),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
-                    Text(categoryFilter ?: "全部分类")
+                    Text(
+                        text = categoryFilter ?: "分类",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                     Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                 }
                 DropdownMenu(
@@ -891,36 +933,12 @@ internal fun TodoAppScreen(
                     onDismissRequest = { categoryMenuExpanded = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("全部任务", fontWeight = FontWeight.Bold) },
-                        onClick = {
-                            filter = TodoFilter.ALL
-                            categoryMenuExpanded = false
-                        },
-                        trailingIcon = { if (filter == TodoFilter.ALL) Text("✓") }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("进行中") },
-                        onClick = {
-                            filter = TodoFilter.ACTIVE
-                            categoryMenuExpanded = false
-                        },
-                        trailingIcon = { if (filter == TodoFilter.ACTIVE) Text("✓") }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("已完成") },
-                        onClick = {
-                            filter = TodoFilter.COMPLETED
-                            categoryMenuExpanded = false
-                        },
-                        trailingIcon = { if (filter == TodoFilter.COMPLETED) Text("✓") }
-                    )
-                    HorizontalDivider()
-                    DropdownMenuItem(
                         text = { Text("全部分类", fontWeight = FontWeight.Bold) },
                         onClick = {
                             categoryFilter = null
                             categoryMenuExpanded = false
-                        }
+                        },
+                        trailingIcon = { if (categoryFilter == null) Text("✓") }
                     )
                     todoList.map { it.category.trim() }.filter { it.isNotEmpty() }
                         .distinct().sorted().forEach { category ->
@@ -929,7 +947,8 @@ internal fun TodoAppScreen(
                                 onClick = {
                                     categoryFilter = category
                                     categoryMenuExpanded = false
-                                }
+                                },
+                                trailingIcon = { if (categoryFilter == category) Text("✓") }
                             )
                         }
                 }
@@ -980,13 +999,13 @@ internal fun TodoAppScreen(
         ) {
             if (visibleTodos.isEmpty()) {
                 item {
-                    Text(
-                        text = if (todoList.isEmpty()) "还没有任务，点击“添加”创建第一项。" else "没有符合条件的任务。",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 32.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyLarge
+                    EmptyState(
+                        title = if (todoList.isEmpty()) "还没有任务" else "没有符合条件的任务",
+                        subtitle = if (todoList.isEmpty()) {
+                            "点右下角「新建待办」，或直接从桌面组件添加"
+                        } else {
+                            "换个筛选条件试试"
+                        }
                     )
                 }
             }
@@ -1079,15 +1098,15 @@ internal fun TodoAppScreen(
             }
         }
         }
-        FloatingActionButton(
+        ExtendedFloatingActionButton(
             onClick = { if (isReady) isCreatingTask = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
-                .testTag("add_task")
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "添加待办")
-        }
+                .testTag("add_task"),
+            icon = { Icon(Icons.Default.Add, contentDescription = null) },
+            text = { Text("新建待办") }
+        )
     }
 }
 
@@ -1621,7 +1640,11 @@ internal fun TodoRow(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 57.dp, end = 8.dp, bottom = 6.dp),
+                    .padding(
+                        start = density.horizontalPadding + density.controlSize + 4.dp,
+                        end = 8.dp,
+                        bottom = 6.dp
+                    ),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 item.subtasks.forEach { subtask ->
@@ -2034,7 +2057,12 @@ private fun FocusTodayCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+                .padding(
+                    start = density.horizontalPadding,
+                    top = 4.dp,
+                    end = 12.dp,
+                    bottom = 4.dp
+                ),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {

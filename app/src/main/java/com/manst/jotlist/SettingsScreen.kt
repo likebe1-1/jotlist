@@ -24,6 +24,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -103,10 +106,7 @@ internal fun SettingsScreen(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("返回") }
-            Text("设置", style = MaterialTheme.typography.headlineSmall)
-            Spacer(Modifier.weight(1f))
+        JotlistHeader(title = "设置", onBack = onBack) {
             Box {
                 IconButton(
                     onClick = {
@@ -135,14 +135,27 @@ internal fun SettingsScreen(
         }
 
         SettingsSection(title = "外观") {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AppearanceMode.entries.forEach { mode ->
-                    FilterChip(
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                AppearanceMode.entries.forEachIndexed { index, mode ->
+                    SegmentedButton(
                         selected = appearanceMode == mode,
                         onClick = { onAppearanceChange(mode) },
-                        label = { Text(mode.label) },
+                        colors = SegmentedButtonDefaults.colors(
+
+                            activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+
+                            activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+
+                        ),
+
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = AppearanceMode.entries.size
+                        ),
                         modifier = Modifier.testTag("settings_appearance_${mode.name}")
-                    )
+                    ) {
+                        Text(mode.label)
+                    }
                 }
             }
             Text(
@@ -151,14 +164,27 @@ internal fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                UiDensity.entries.forEach { option ->
-                    FilterChip(
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                UiDensity.entries.forEachIndexed { index, option ->
+                    SegmentedButton(
                         selected = density == option,
                         onClick = { onDensityChange(option) },
-                        label = { Text(option.label) },
+                        colors = SegmentedButtonDefaults.colors(
+
+                            activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+
+                            activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+
+                        ),
+
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = UiDensity.entries.size
+                        ),
                         modifier = Modifier.testTag("settings_density_${option.name}")
-                    )
+                    ) {
+                        Text(option.label)
+                    }
                 }
             }
         }

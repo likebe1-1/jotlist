@@ -70,7 +70,7 @@ internal fun UnifiedSearchScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("搜索", style = MaterialTheme.typography.headlineMedium)
+        JotlistHeader(title = "搜索")
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },

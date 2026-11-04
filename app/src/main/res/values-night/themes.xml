@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 深色冷启动：父主题换成 Dark，窗口底色跟 Compose 的 background 一致，避免闪白 -->
+    <style name="Theme.MyApplication" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/app_window_background</item>
+    </style>
+</resources>

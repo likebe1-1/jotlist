@@ -119,6 +119,11 @@ class MainActivity : ComponentActivity() {
                                         NavigationBarItem(
                                             selected = destination == tab,
                                             onClick = { destination = tab },
+                                            colors = NavigationBarItemDefaults.colors(
+                                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                selectedTextColor = MaterialTheme.colorScheme.onSurface
+                                            ),
                                             icon = {
                                                 Icon(
                                                     imageVector = when (tab) {
