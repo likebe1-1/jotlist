@@ -6,29 +6,44 @@ on:
   pull_request:
   workflow_dispatch:
 
+# 最小权限：默认 GITHUB_TOKEN 只读，降低第三方 action / 被注入 PR 的供应链风险。
+permissions:
+  contents: read
+
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin
           java-version: '17'
-
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --console=plain
-
       - name: Run unit tests
         run: ./gradlew :app:testDebugUnitTest --console=plain
-
+      - name: Run Android lint
+        run: ./gradlew :app:lintDebug --console=plain
+      - name: Verify release manifest hardening
+        run: |
+          ./gradlew :app:processReleaseManifest --console=plain
+          python3 scripts/verify_release_manifest.py
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk

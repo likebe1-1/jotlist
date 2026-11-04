@@ -65,7 +65,8 @@ android {
 
     lint {
         // 本机只有 JDK 25，AGP 8.7 的 lint 无法运行；
-        // release 构建不再强制跑 lintVital，lint 请在 Android Studio 或用 JDK 17/21 单独执行。
+        // 因此 release 构建不强制跑 lintVital，CI 会在 JDK 17 上单独执行 :app:lintDebug。
+        // 本地需要 lint 时请用 JDK 17/21 或 Android Studio。
         checkReleaseBuilds = false
     }
 }
