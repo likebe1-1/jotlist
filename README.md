@@ -105,6 +105,7 @@ UI 层用 Compose 仪器测试覆盖主要流程。
 ## 隐私
 
 不收集任何数据：不申请网络权限、无账号、无广告、无第三方 SDK。
+已关闭 Android 自动备份（`allowBackup=false`），待办与笔记不会进入系统云备份或设备迁移备份。
 详见 [隐私政策](release-assets/privacy-policy.md)。
 
 ## 许可证

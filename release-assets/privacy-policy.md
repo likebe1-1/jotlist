@@ -2,7 +2,7 @@
 
 **应用名称**：Jotlist
 **包名**：com.manst.jotlist
-**生效日期**：2026 年 10 月 30 日
+**生效日期**：2026 年 11 月 4 日
 
 ## 一句话概括
 
@@ -37,7 +37,7 @@ Jotlist 不收集、不上传、不共享任何个人数据。所有待办、笔
 
 ## 系统备份
 
-如果你在 Android 系统中开启了"应用数据备份"，系统可能把本应用的数据纳入备份并保存到你自己的云端账户。这份备份由 Google 或你的设备厂商管理，不经过我们，我们也无法访问。
+本应用已关闭 Android 自动备份（`allowBackup=false`）：待办、笔记、完成记录和设置都不会进入系统的云端备份或设备间迁移备份，只保存在本机的应用私有存储中。因此卸载应用或更换设备后，数据不会自动恢复。
 
 ## 儿童隐私
 
@@ -57,7 +57,7 @@ Jotlist 不收集、不上传、不共享任何个人数据。所有待办、笔
 
 **App**: Jotlist
 **Package**: com.manst.jotlist
-**Effective date**: October 30, 2026
+**Effective date**: November 4, 2026
 
 ## Summary
 
@@ -92,7 +92,7 @@ We cannot delete your data remotely because we never receive it.
 
 ## System backup
 
-If you have Android's app data backup enabled, the system may include this app's data in a backup stored in your own cloud account. That backup is managed by Google or your device manufacturer, not by us.
+Android auto backup is disabled for this app (`allowBackup=false`): tasks, notes, completion history and settings are not included in cloud backups or device-to-device transfers. They stay only in the app's private storage on your device, so uninstalling the app or switching devices will not restore them.
 
 ## Children's privacy
 

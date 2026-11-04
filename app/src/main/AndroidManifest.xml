@@ -7,9 +7,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -36,9 +34,11 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+        <!-- 小组件 Provider 只需要接收系统广播；exported=false 时系统仍会投递
+             APPWIDGET_UPDATE，而第三方应用无法再伪造广播（AOSP 官方模板同样写法）。 -->
         <receiver
             android:name=".TodoWidgetProvider"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -48,7 +48,7 @@
         </receiver>
         <receiver
             android:name=".NotesWidgetProvider"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -58,6 +58,11 @@
         </receiver>
         <receiver
             android:name=".SnoozeReminderReceiver"
+            android:enabled="true"
+            android:exported="false" />
+        <!-- 小组件写操作（完成任务）走非导出接收器，只有本应用能触发。 -->
+        <receiver
+            android:name=".WidgetActionReceiver"
             android:enabled="true"
             android:exported="false" />
     </application>

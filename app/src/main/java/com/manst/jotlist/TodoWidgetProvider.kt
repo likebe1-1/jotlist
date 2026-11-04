@@ -21,6 +21,9 @@ import java.util.Locale
 private const val WIDGET_PREFS_NAME = "todo_prefs"
 private const val WIDGET_KEY_TODO_LIST = "todo_list_json"
 
+/** 防御性上限：即使 manifest 的 exported 配置被改错，也不会被畸形 ids 拖垮主线程。 */
+private const val MAX_WIDGET_IDS = 100
+
 class TodoWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(
         context: Context,
@@ -29,7 +32,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
     ) {
         // 先处理到点的重复任务，再渲染。
         sweepRecurringResets(context)
-        appWidgetIds.forEach { appWidgetId ->
+        appWidgetIds.take(MAX_WIDGET_IDS).forEach { appWidgetId ->
             appWidgetManager.updateAppWidget(appWidgetId, createViews(context, appWidgetId))
         }
     }
@@ -48,20 +51,10 @@ class TodoWidgetProvider : AppWidgetProvider() {
         appWidgetManager.updateAppWidget(appWidgetId, createViews(context, appWidgetId))
     }
 
-    override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        if (intent.action == ACTION_COMPLETE_TODO) {
-            val todoId = intent.getLongExtra(EXTRA_TODO_ID, Long.MIN_VALUE)
-            if (todoId != Long.MIN_VALUE) {
-                markTodoComplete(context, todoId)
-                // 小组件勾掉任务后必须一并撤掉已排的闹钟，
-                // 否则到期仍会对着已完成的任务弹提醒。
-                cancelReminderForId(context, todoId)
-                notifyTodoDataChanged(context)
-            }
-            refreshAllWidgets(context)
-        }
-    }
+    // 注意：这里不覆写 onReceive 处理自定义动作。
+    // 本 Provider 必须 exported="true" 才能收到系统的 APPWIDGET_UPDATE，
+    // 任何应用都能向它发显式广播；「完成任务」这类写操作放在非导出的
+    // WidgetActionReceiver 里，避免第三方应用伪造广播篡改用户数据。
 
     private fun createViews(context: Context, appWidgetId: Int): RemoteViews {
         val manager = AppWidgetManager.getInstance(context)
@@ -208,9 +201,10 @@ class TodoWidgetProvider : AppWidgetProvider() {
     }
 
     private fun createCompletePendingIntent(context: Context, todoId: Long): PendingIntent {
-        val intent = Intent(context, TodoWidgetProvider::class.java).apply {
-            action = ACTION_COMPLETE_TODO
-            putExtra(EXTRA_TODO_ID, todoId)
+        // 写操作发往非导出接收器：导出的 Provider 可能被第三方应用伪造广播。
+        val intent = Intent(context, WidgetActionReceiver::class.java).apply {
+            action = WidgetActionReceiver.ACTION_COMPLETE_TODO
+            putExtra(WidgetActionReceiver.EXTRA_TODO_ID, todoId)
             data = Uri.parse("todo-widget://complete/$todoId")
         }
         return PendingIntent.getBroadcast(
@@ -219,10 +213,6 @@ class TodoWidgetProvider : AppWidgetProvider() {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-    }
-
-    private fun refreshAllWidgets(context: Context) {
-        refresh(context)
     }
 
     companion object {
@@ -236,11 +226,6 @@ class TodoWidgetProvider : AppWidgetProvider() {
             val provider = ComponentName(context, TodoWidgetProvider::class.java)
             TodoWidgetProvider().onUpdate(context, manager, manager.getAppWidgetIds(provider))
         }
-
-        private const val ACTION_COMPLETE_TODO =
-            "com.manst.jotlist.action.COMPLETE_WIDGET_TODO"
-        private const val EXTRA_TODO_ID = "com.manst.jotlist.extra.TODO_ID"
-        private val PREFERENCES_LOCK = Any()
     }
 
     private fun readActiveTodos(context: Context): List<WidgetTodo> {
@@ -285,29 +270,6 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 )
         } catch (_: JSONException) {
             emptyList()
-        }
-    }
-
-    private fun markTodoComplete(context: Context, todoId: Long) {
-        synchronized(PREFERENCES_LOCK) {
-            val loaded = loadTodoList(context) as? TodoListLoadResult.Loaded ?: return
-            val index = loaded.items.indexOfFirst { it.id == todoId }
-            if (index < 0) return
-            val task = loaded.items[index]
-            if (task.isDone) return
-
-            val completedAt = System.currentTimeMillis()
-            // 与界面/通知一致：重复任务只标记完成并记录恢复时间，不再复制新任务。
-            val updated = completeTodoItem(task, RecurrenceCompletionChoice.SKIP, completedAt)
-            val tasks = loaded.items.toMutableList().apply { this[index] = updated }
-            saveTodoList(context, tasks)
-            // 下一次到点前先把提醒排好，用户不开 App 也能收到。
-            updated.resetAt?.let { scheduleResetReminder(context, updated) }
-            when (val history = loadCompletionHistory(context)) {
-                is CompletionHistoryLoadResult.Loaded ->
-                    saveCompletionHistory(context, history.timestamps + completedAt)
-                CompletionHistoryLoadResult.Invalid -> Unit
-            }
         }
     }
 

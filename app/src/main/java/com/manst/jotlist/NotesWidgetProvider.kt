@@ -11,6 +11,9 @@ import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 
+/** 防御性上限：避免被异常/伪造的 ids 数组拖垮主线程。 */
+private const val MAX_WIDGET_IDS = 100
+
 /**
  * 独立的「笔记」桌面组件，和待办组件分属两个 provider：
  * 桌面组件选择器里会各占一项，用户可以只放笔记、不放待办。
@@ -21,7 +24,8 @@ class NotesWidgetProvider : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        appWidgetIds.forEach { appWidgetId ->
+        // 防御性上限：避免被异常/伪造的 ids 数组拖垮主线程。
+        appWidgetIds.take(MAX_WIDGET_IDS).forEach { appWidgetId ->
             appWidgetManager.updateAppWidget(appWidgetId, createViews(context, appWidgetId))
         }
     }
