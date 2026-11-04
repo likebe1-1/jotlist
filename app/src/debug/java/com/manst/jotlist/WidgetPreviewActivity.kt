@@ -15,12 +15,13 @@ import android.widget.ScrollView
 import android.widget.TextView
 
 /**
- * 仅 debug 构建可用：把三套小组件布局按真实 dp 尺寸摆出来，
- * 不依赖任何 Launcher 就能做视觉走查（也是生成 previewImage 的素材来源）。
+ * 仅 debug 构建可用：把「待办」「笔记」两组小组件按真实 dp 尺寸摆出来，
+ * 不依赖任何 Launcher 就能做视觉走查，也用来生成 previewImage。
  *
  * 用法：
  *   adb shell am start -n com.manst.jotlist/.WidgetPreviewActivity
- *   adb shell am start -n com.manst.jotlist/.WidgetPreviewActivity --ez pin true   # 弹"添加到主屏幕"
+ *   adb shell am start -n com.manst.jotlist/.WidgetPreviewActivity --es pin todo
+ *   adb shell am start -n com.manst.jotlist/.WidgetPreviewActivity --es pin note
  */
 class WidgetPreviewActivity : Activity() {
 
@@ -33,6 +34,15 @@ class WidgetPreviewActivity : Activity() {
         "整理书桌，只留 6 个图标"
     )
 
+    private val noteSamples = listOf(
+        "周会纪要" to "下周先打通同步链路，再补埋点",
+        "读书笔记 · 深度工作" to "把注意力当成稀缺资源来排期",
+        "灵感" to "桌面组件按条数自动变密？",
+        "旅行清单" to "护照、充电器、转换头",
+        "购物" to "咖啡豆 500g、燕麦奶",
+        "Quote" to "Simplicity is the ultimate sophistication."
+    )
+
     private val rowIds = intArrayOf(
         R.id.widget_row_1, R.id.widget_row_2, R.id.widget_row_3,
         R.id.widget_row_4, R.id.widget_row_5, R.id.widget_row_6
@@ -43,19 +53,30 @@ class WidgetPreviewActivity : Activity() {
         R.id.widget_task_4, R.id.widget_task_5, R.id.widget_task_6
     )
 
+    private val noteRowIds = intArrayOf(
+        R.id.note_row_1, R.id.note_row_2, R.id.note_row_3,
+        R.id.note_row_4, R.id.note_row_5, R.id.note_row_6
+    )
+
+    private val noteTitleIds = intArrayOf(
+        R.id.note_item_title_1, R.id.note_item_title_2, R.id.note_item_title_3,
+        R.id.note_item_title_4, R.id.note_item_title_5, R.id.note_item_title_6
+    )
+
+    private val noteBodyIds = intArrayOf(
+        R.id.note_item_body_1, R.id.note_item_body_2, R.id.note_item_body_3,
+        R.id.note_item_body_4, R.id.note_item_body_5, R.id.note_item_body_6
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 调试入口：直接请求把小组件钉到桌面，省去手动拖拽
-        if (intent?.getBooleanExtra("pin", false) == true) {
-            val manager = AppWidgetManager.getInstance(this)
-            if (manager.isRequestPinAppWidgetSupported) {
-                manager.requestPinAppWidget(
-                    ComponentName(this, TodoWidgetProvider::class.java),
-                    null,
-                    null
-                )
-            }
+        // 调试入口：直接把某个组件钉到桌面，省去手动拖拽
+        when (intent?.getStringExtra("pin")) {
+            "todo" -> pin(TodoWidgetProvider::class.java)
+            "note" -> pin(NotesWidgetProvider::class.java)
+        }
+        if (intent?.getStringExtra("pin") != null) {
             finish()
             return
         }
@@ -65,11 +86,15 @@ class WidgetPreviewActivity : Activity() {
             setPadding(dp(20), dp(28), dp(20), dp(48))
         }
 
-        addPreview(column, "紧凑 2×2 · 160×160dp", R.layout.todo_widget_compact, 160, 160, 4)
-        addPreview(column, "标准 4×2 · 330×140dp", R.layout.todo_widget_standard, 330, 140, 3)
-        addPreview(column, "标准 4×3 · 330×190dp", R.layout.todo_widget_standard, 330, 190, 5)
-        addPreview(column, "扩展 4×4 · 330×250dp", R.layout.todo_widget_expanded, 330, 250, 6)
-        addPreview(column, "空状态 · 扩展 330×250dp", R.layout.todo_widget_expanded, 330, 250, 0)
+        addPreview(column, "待办 · 紧凑 2×2 · 160×160dp", R.layout.todo_widget_compact, 160, 160, 2)
+        addPreview(column, "待办 · 标准 4×2 · 330×140dp", R.layout.todo_widget_standard, 330, 140, 3)
+        addPreview(column, "待办 · 标准 4×3 · 330×190dp", R.layout.todo_widget_standard, 330, 190, 5)
+        addPreview(column, "待办 · 扩展 4×4 · 330×250dp", R.layout.todo_widget_expanded, 330, 250, 6)
+
+        addPreview(column, "笔记 · 紧凑 2×2 · 160×160dp", R.layout.note_widget_compact, 160, 160, 2)
+        addPreview(column, "笔记 · 标准 4×3 · 330×190dp", R.layout.note_widget_standard, 330, 190, 4)
+        addPreview(column, "笔记 · 扩展 4×4 · 330×250dp", R.layout.note_widget_expanded, 330, 250, 6)
+        addPreview(column, "笔记 · 空状态 330×190dp", R.layout.note_widget_standard, 330, 190, 0)
 
         setContentView(
             ScrollView(this).apply {
@@ -77,6 +102,13 @@ class WidgetPreviewActivity : Activity() {
                 addView(column)
             }
         )
+    }
+
+    private fun pin(provider: Class<*>) {
+        val manager = AppWidgetManager.getInstance(this)
+        if (manager.isRequestPinAppWidgetSupported) {
+            manager.requestPinAppWidget(ComponentName(this, provider), null, null)
+        }
     }
 
     private fun addPreview(
@@ -108,10 +140,17 @@ class WidgetPreviewActivity : Activity() {
         frame.addView(widget)
         parent.addView(frame)
 
-        bind(widget, rowCount)
+        if (layoutRes == R.layout.todo_widget_compact ||
+            layoutRes == R.layout.todo_widget_standard ||
+            layoutRes == R.layout.todo_widget_expanded
+        ) {
+            bindTodo(widget, rowCount)
+        } else {
+            bindNote(widget, rowCount)
+        }
     }
 
-    private fun bind(root: View, rowCount: Int) {
+    private fun bindTodo(root: View, rowCount: Int) {
         root.findViewById<View>(R.id.widget_date)?.let {
             (it as TextView).text = "11月2日 周日"
             it.visibility = View.VISIBLE
@@ -125,7 +164,13 @@ class WidgetPreviewActivity : Activity() {
             val row = root.findViewById<View>(id) ?: return@forEachIndexed
             if (index < rowCount) {
                 row.visibility = View.VISIBLE
-                root.findViewById<TextView>(taskIds[index])?.text = tasks[index % tasks.size]
+                val task = root.findViewById<TextView>(taskIds[index])
+                task?.text = tasks[index % tasks.size]
+                task?.textSize = when {
+                    rowCount <= 2 -> 15f
+                    rowCount <= 4 -> 13.5f
+                    else -> 12.5f
+                }
             } else {
                 row.visibility = View.GONE
             }
@@ -138,6 +183,38 @@ class WidgetPreviewActivity : Activity() {
             if (rowCount == 0) View.GONE else View.VISIBLE
         root.findViewById<TextView>(R.id.widget_footer_text)?.text = "今天完成 3/8"
         root.findViewById<ProgressBar>(R.id.widget_progress)?.progress = 37
+    }
+
+    private fun bindNote(root: View, rowCount: Int) {
+        root.findViewById<TextView>(R.id.note_count)?.let {
+            if (rowCount == 0) it.visibility = View.GONE else it.text = rowCount.toString()
+        }
+
+        noteRowIds.forEachIndexed { index, id ->
+            val row = root.findViewById<View>(id) ?: return@forEachIndexed
+            if (index < rowCount) {
+                row.visibility = View.VISIBLE
+                val (title, body) = noteSamples[index % noteSamples.size]
+                val titleSize = when {
+                    rowCount <= 2 -> 13.5f
+                    rowCount <= 4 -> 12f
+                    else -> 11f
+                }
+                root.findViewById<TextView>(noteTitleIds[index])?.apply {
+                    text = title
+                    textSize = titleSize
+                }
+                root.findViewById<TextView>(noteBodyIds[index])?.apply {
+                    text = body
+                    textSize = titleSize - 2.5f
+                }
+            } else {
+                row.visibility = View.GONE
+            }
+        }
+
+        root.findViewById<View>(R.id.note_empty)?.visibility =
+            if (rowCount == 0) View.VISIBLE else View.GONE
     }
 
     private fun dp(value: Int): Int =

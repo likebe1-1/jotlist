@@ -42,7 +42,8 @@
         <item name="android:textSize">15sp</item>
     </style>
 
-    <!-- 行高固定，剩余空间由外层 body 的 gravity 均分，避免任务少时被拉成"大行距" -->
+    <!-- 行高固定，数量只影响字号（见 TodoWidgetProvider 的 taskSp 分档），
+         避免桌面格子很大时行被拉成"大行距" -->
     <style name="TodoWidgetRow">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">@dimen/widget_row_height</item>

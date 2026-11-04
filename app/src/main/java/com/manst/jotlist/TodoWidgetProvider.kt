@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.text.format.DateFormat
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import org.json.JSONArray
@@ -103,11 +104,20 @@ class TodoWidgetProvider : AppWidgetProvider() {
             if (hasTodos) View.GONE else View.VISIBLE
         )
 
+        // 待办少的时候把字号放大、行高由 layout_weight 自动撑开；
+        // 条数多时收回到 12.5sp，保证一屏放得下。
+        val taskSp = when {
+            visibleTodos.size <= 2 -> 15f
+            visibleTodos.size <= 4 -> 13.5f
+            else -> 12.5f
+        }
+
         spec.rows.forEachIndexed { index, row ->
             val todo = visibleTodos.getOrNull(index)
             views.setViewVisibility(row.container, if (todo == null) View.GONE else View.VISIBLE)
             if (todo != null) {
                 views.setTextViewText(row.text, todo.text)
+                views.setTextViewTextSize(row.text, TypedValue.COMPLEX_UNIT_SP, taskSp)
                 views.setContentDescription(
                     row.complete,
                     context.getString(R.string.widget_complete_task, todo.text)

@@ -10,4 +10,15 @@
     <string name="widget_footer_progress">今天完成 %1$d/%2$d</string>
     <string name="widget_footer_none">今天还没开始</string>
     <string name="widget_today">今天</string>
+    <string name="widget_more">还有 %1$d 项</string>
+
+    <string name="widget_notes_title">笔记</string>
+    <string name="widget_notes_add">新建笔记</string>
+    <string name="widget_notes_add_glyph">记</string>
+    <string name="widget_notes_empty">还没有笔记，点右上角记开始</string>
+    <string name="widget_notes_empty_compact">点记开始</string>
+    <string name="widget_notes_description">随手记下想法，点开继续写</string>
+    <string name="widget_notes_open">打开笔记：%1$s</string>
+    <string name="widget_notes_untitled">无标题</string>
+    <string name="widget_notes_count">%1$d</string>
 </resources>

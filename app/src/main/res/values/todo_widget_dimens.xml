@@ -7,4 +7,5 @@
     <dimen name="widget_row_height">26dp</dimen>
     <dimen name="widget_action_size">24dp</dimen>
     <dimen name="widget_ring_size">17dp</dimen>
+    <dimen name="note_row_height">34dp</dimen>
 </resources>

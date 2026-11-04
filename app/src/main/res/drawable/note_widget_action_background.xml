@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 笔记组件的圆形按钮底：青碧药丸 + 涟漪 -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/note_ripple">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/note_accent_soft" />
+            <corners android:radius="999dp" />
+        </shape>
+    </item>
+</ripple>

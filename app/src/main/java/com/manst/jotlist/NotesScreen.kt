@@ -107,7 +107,11 @@ internal fun NotesScreen(
     }
 
     LaunchedEffect(canSave, notes.toList()) {
-        if (canSave) saveNotes(context, notes.toList())
+        if (canSave) {
+            saveNotes(context, notes.toList())
+            // 笔记有变化就刷新"笔记"桌面组件，待办组件不受影响。
+            NotesWidgetProvider.refresh(context)
+        }
     }
 
     LaunchedEffect(openNoteId, isLoaded) {

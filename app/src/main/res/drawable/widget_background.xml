@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 小组件底板：极浅的紫色渐变 + 1dp 描边，深浅色各一套颜色资源 -->
+<!-- 两个组件共用的底板：极浅冷色渐变 + 1dp 描边（深浅色由颜色资源切换） -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <gradient

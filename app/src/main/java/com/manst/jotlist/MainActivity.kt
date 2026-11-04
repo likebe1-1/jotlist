@@ -39,10 +39,16 @@ class MainActivity : ComponentActivity() {
             intent.getBooleanExtra(TodoWidgetProvider.EXTRA_OPEN_ADD_TODO, false)
         val openQuickCaptureFromWidget =
             intent.getBooleanExtra(TodoWidgetProvider.EXTRA_OPEN_QUICK_CAPTURE, false)
+        val openNotesFromWidget =
+            intent.getBooleanExtra(NotesWidgetProvider.EXTRA_OPEN_NOTES, false)
+        val openNoteIdFromWidget = intent.getLongExtra(NotesWidgetProvider.EXTRA_OPEN_NOTE_ID, 0L)
+            .takeIf { it > 0L }
         val openTodoFromNotification = intent.getLongExtra(EXTRA_OPEN_TODO_ID, 0L)
             .takeIf { it > 0L }
         intent.removeExtra(TodoWidgetProvider.EXTRA_OPEN_ADD_TODO)
         intent.removeExtra(TodoWidgetProvider.EXTRA_OPEN_QUICK_CAPTURE)
+        intent.removeExtra(NotesWidgetProvider.EXTRA_OPEN_NOTES)
+        intent.removeExtra(NotesWidgetProvider.EXTRA_OPEN_NOTE_ID)
         intent.removeExtra(EXTRA_OPEN_TODO_ID)
         setContent {
             // 首次启动先展示品牌页；点"开始使用"后写入标记，之后不再出现。
@@ -51,12 +57,15 @@ class MainActivity : ComponentActivity() {
             var uiDensity by rememberSaveable { mutableStateOf(readUiDensity(this@MainActivity)) }
             var destination by rememberSaveable {
                 mutableStateOf(
-                    if (openQuickCaptureFromWidget) MainDestination.NOTES
-                    else MainDestination.TODO
+                    if (openQuickCaptureFromWidget || openNotesFromWidget || openNoteIdFromWidget != null) {
+                        MainDestination.NOTES
+                    } else {
+                        MainDestination.TODO
+                    }
                 )
             }
             var noteEditorVisible by remember { mutableStateOf(false) }
-            var requestedNoteId by rememberSaveable { mutableStateOf<Long?>(null) }
+            var requestedNoteId by rememberSaveable { mutableStateOf(openNoteIdFromWidget) }
             var requestedTodoId by rememberSaveable {
                 mutableStateOf(openTodoFromNotification)
             }

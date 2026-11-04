@@ -3,7 +3,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/todo_widget_background"
+    android:background="@drawable/widget_background"
     android:orientation="vertical"
     android:paddingStart="@dimen/widget_padding_h"
     android:paddingTop="@dimen/widget_padding_v"

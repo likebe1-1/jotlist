@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Expanded 4x4+ notes widget: up to six notes. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/widget_padding_h"
+    android:paddingTop="@dimen/widget_padding_v"
+    android:paddingEnd="@dimen/widget_padding_h"
+    android:paddingBottom="@dimen/widget_padding_v">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/widget_header_height"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/note_title"
+            style="@style/NoteWidgetTitle"
+            android:text="@string/widget_notes_title" />
+
+        <TextView
+            android:id="@+id/note_count"
+            style="@style/NoteWidgetCount" />
+
+        <TextView
+            android:id="@+id/note_add"
+            style="@style/NoteWidgetAction"
+            android:contentDescription="@string/widget_notes_add"
+            android:text="@string/widget_notes_add_glyph" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/note_row_1"
+            style="@style/NoteWidgetRow">
+
+            <LinearLayout style="@style/NoteWidgetRowText">
+
+                <TextView
+                    android:id="@+id/note_item_title_1"
+                    style="@style/NoteWidgetItemTitle" />
+
+                <TextView
+                    android:id="@+id/note_item_body_1"
+                    style="@style/NoteWidgetItemBody" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/note_row_2"
+            style="@style/NoteWidgetRow">
+
+            <LinearLayout style="@style/NoteWidgetRowText">
+
+                <TextView
+                    android:id="@+id/note_item_title_2"
+                    style="@style/NoteWidgetItemTitle" />
+
+                <TextView
+                    android:id="@+id/note_item_body_2"
+                    style="@style/NoteWidgetItemBody" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/note_row_3"
+            style="@style/NoteWidgetRow">
+
+            <LinearLayout style="@style/NoteWidgetRowText">
+
+                <TextView
+                    android:id="@+id/note_item_title_3"
+                    style="@style/NoteWidgetItemTitle" />
+
+                <TextView
+                    android:id="@+id/note_item_body_3"
+                    style="@style/NoteWidgetItemBody" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/note_row_4"
+            style="@style/NoteWidgetRow">
+
+            <LinearLayout style="@style/NoteWidgetRowText">
+
+                <TextView
+                    android:id="@+id/note_item_title_4"
+                    style="@style/NoteWidgetItemTitle" />
+
+                <TextView
+                    android:id="@+id/note_item_body_4"
+                    style="@style/NoteWidgetItemBody" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/note_row_5"
+            style="@style/NoteWidgetRow">
+
+            <LinearLayout style="@style/NoteWidgetRowText">
+
+                <TextView
+                    android:id="@+id/note_item_title_5"
+                    style="@style/NoteWidgetItemTitle" />
+
+                <TextView
+                    android:id="@+id/note_item_body_5"
+                    style="@style/NoteWidgetItemBody" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/note_row_6"
+            style="@style/NoteWidgetRow">
+
+            <LinearLayout style="@style/NoteWidgetRowText">
+
+                <TextView
+                    android:id="@+id/note_item_title_6"
+                    style="@style/NoteWidgetItemTitle" />
+
+                <TextView
+                    android:id="@+id/note_item_body_6"
+                    style="@style/NoteWidgetItemBody" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/note_empty"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_widget_note_empty" />
+
+            <TextView
+                style="@style/NoteWidgetEmptyText"
+                android:text="@string/widget_notes_empty" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
