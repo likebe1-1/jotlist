@@ -198,9 +198,27 @@ private fun refreshReminderSummary(context: Context) {
         .setGroup(REMINDER_GROUP)
         .setGroupSummary(true)
         .setAutoCancel(true)
+        // 锁屏上只显示数量，不拼接任务正文。
+        .setVisibility(android.app.Notification.VISIBILITY_PRIVATE)
+        .setPublicVersion(lockScreenNotification(context, "${active.size} 项任务到期"))
         .build()
     manager.notify(REMINDER_SUMMARY_ID, summary)
 }
+
+/** 锁屏展示的公开版本通知：不含任何待办正文，仅通用文案。 */
+private fun lockScreenNotification(
+    context: Context,
+    text: String,
+    contentIntent: PendingIntent? = null
+): android.app.Notification =
+    android.app.Notification.Builder(context, REMINDER_CHANNEL_ID)
+        .setSmallIcon(android.R.drawable.ic_dialog_info)
+        .setContentTitle("Jotlist")
+        .setContentText(text)
+        .setGroup(REMINDER_GROUP)
+        .setAutoCancel(true)
+        .apply { contentIntent?.let { setContentIntent(it) } }
+        .build()
 
 private fun snoozeIntent(
     context: Context,
@@ -282,6 +300,8 @@ internal fun postReminder(context: Context, todoId: Long, text: String) {
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build()
             )
+            // 锁屏默认只展示不敏感的公开版本。
+            lockscreenVisibility = android.app.Notification.VISIBILITY_PRIVATE
         }
     )
     val tenMinutesIntent = snoozeIntent(
@@ -308,6 +328,11 @@ internal fun postReminder(context: Context, todoId: Long, text: String) {
         .setContentIntent(openTaskIntent(context, todoId))
         .setGroup(REMINDER_GROUP)
         .setAutoCancel(true)
+        // 锁屏上只显示通用文案，不泄露具体待办内容。
+        .setVisibility(android.app.Notification.VISIBILITY_PRIVATE)
+        .setPublicVersion(
+            lockScreenNotification(context, "有一条待办提醒", openTaskIntent(context, todoId))
+        )
         .addAction(
             android.app.Notification.Action.Builder(
                 android.graphics.drawable.Icon.createWithResource(
