@@ -3,6 +3,7 @@ package com.manst.jotlist
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -337,5 +338,26 @@ class TodoLogicTest {
         assertEquals("08:00", formatMinuteOfDay(8 * 60))
         assertEquals("22:30", formatMinuteOfDay(22 * 60 + 30))
         assertEquals("00:00", formatMinuteOfDay(24 * 60))
+    }
+
+    // ===== 异常数据防御 =====
+
+    @Test(timeout = 5_000L)
+    fun completingRecurringTaskWithExtremeDueAtDoesNotHang() {
+        val now = System.currentTimeMillis()
+        val completed = completeTodoItem(
+            todo(dueAt = Long.MAX_VALUE, recurrence = "DAILY"),
+            RecurrenceCompletionChoice.SKIP,
+            now
+        )
+
+        assertTrue("重复任务应被标记完成", completed.isDone)
+        val resetAt = completed.resetAt
+        assertNotNull("重复任务应记录下次恢复时间", resetAt)
+        val oneDay = 24L * 60L * 60L * 1000L
+        assertTrue(
+            "极端时间戳应退回有限范围，而不是产生超大/负值时间",
+            resetAt!! in (now + 1L)..(now + 2L * oneDay)
+        )
     }
 }

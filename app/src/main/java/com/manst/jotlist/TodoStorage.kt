@@ -34,6 +34,14 @@ internal const val DEFAULT_DND_START_MINUTE = 22 * 60
 internal const val DEFAULT_DND_END_MINUTE = 8 * 60
 internal const val KEY_UI_DENSITY = "ui_density"
 
+/** 存储值上限：超过该长度的 JSON 视为损坏，避免解析时 OOM。 */
+private const val MAX_STORED_JSON_CHARS = 8 * 1024 * 1024
+
+/** 合理时间戳上限（2100-01-01），防御被篡改/损坏的备份写入极端值。 */
+private const val MAX_REASONABLE_TIMESTAMP = 4102444800000L
+
+private fun Long.saneTimestamp(): Long? = takeIf { it in 1L..MAX_REASONABLE_TIMESTAMP }
+
 /**
  * 把到点的重复任务恢复成未完成。返回是否有改动。
  *
@@ -142,6 +150,7 @@ internal fun saveTodoList(context: Context, list: List<TodoItem>) {
 internal fun loadTodoList(context: Context): TodoListLoadResult {
     val json = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .getString(KEY_TODO_LIST, null) ?: return TodoListLoadResult.Loaded(emptyList())
+    if (json.length > MAX_STORED_JSON_CHARS) return TodoListLoadResult.InvalidJson
     return try {
         val arr = JSONArray(json)
         TodoListLoadResult.Loaded(
@@ -155,16 +164,17 @@ internal fun loadTodoList(context: Context): TodoListLoadResult {
                     isDone = obj.getBoolean("isDone"),
                     createdAt = createdAt,
                     completedAt = if (obj.isNull("completedAt")) null
-                    else obj.optLong("completedAt").takeIf { it > 0L },
+                    else obj.optLong("completedAt").saneTimestamp(),
                     plannedAt = if (obj.isNull("plannedAt")) null
-                    else obj.optLong("plannedAt").takeIf { it > 0L },
+                    else obj.optLong("plannedAt").saneTimestamp(),
                     reviewHiddenUntil = if (obj.isNull("reviewHiddenUntil")) null
-                    else obj.optLong("reviewHiddenUntil").takeIf { it > 0L },
+                    else obj.optLong("reviewHiddenUntil").saneTimestamp(),
                     focusDate = if (obj.isNull("focusDate")) null
-                    else obj.optLong("focusDate").takeIf { it > 0L },
+                    else obj.optLong("focusDate").saneTimestamp(),
                     resetAt = if (obj.isNull("resetAt")) null
-                    else obj.optLong("resetAt").takeIf { it > 0L },
-                    dueAt = if (obj.isNull("dueAt")) null else obj.optLong("dueAt").takeIf { it > 0L },
+                    else obj.optLong("resetAt").saneTimestamp(),
+                    dueAt = if (obj.isNull("dueAt")) null
+                    else obj.optLong("dueAt").saneTimestamp(),
                     category = obj.optString("category", ""),
                     priority = obj.optInt("priority", 1).coerceIn(0, 2),
                     reminderMinutesBefore = obj.optInt("reminderMinutesBefore", 0)
@@ -192,7 +202,8 @@ internal fun loadTodoList(context: Context): TodoListLoadResult {
                 )
             }
         )
-    } catch (_: org.json.JSONException) {
+    } catch (_: Exception) {
+        // JSONException 之外，损坏/被篡改的存储值还可能触发 ClassCastException 等运行时异常。
         TodoListLoadResult.InvalidJson
     }
 }
@@ -200,6 +211,7 @@ internal fun loadTodoList(context: Context): TodoListLoadResult {
 internal fun loadNotes(context: Context): NotesLoadResult {
     val json = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .getString(KEY_NOTES, null) ?: return NotesLoadResult.Loaded(emptyList())
+    if (json.length > MAX_STORED_JSON_CHARS) return NotesLoadResult.Invalid
     return try {
         val array = JSONArray(json)
         NotesLoadResult.Loaded(
@@ -231,7 +243,7 @@ internal fun loadNotes(context: Context): NotesLoadResult {
                 )
             }
         )
-    } catch (_: org.json.JSONException) {
+    } catch (_: Exception) {
         NotesLoadResult.Invalid
     }
 }
@@ -270,10 +282,11 @@ internal fun loadCompletionHistory(context: Context): CompletionHistoryLoadResul
     val json = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .getString(KEY_COMPLETION_HISTORY, null)
         ?: return CompletionHistoryLoadResult.Loaded(emptyList())
+    if (json.length > MAX_STORED_JSON_CHARS) return CompletionHistoryLoadResult.Invalid
     return try {
         val array = JSONArray(json)
         CompletionHistoryLoadResult.Loaded(List(array.length()) { index -> array.getLong(index) })
-    } catch (_: org.json.JSONException) {
+    } catch (_: Exception) {
         CompletionHistoryLoadResult.Invalid
     }
 }

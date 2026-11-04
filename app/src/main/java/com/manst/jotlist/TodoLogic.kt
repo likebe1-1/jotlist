@@ -90,14 +90,28 @@ private fun Calendar.addOnePeriod(recurrence: Recurrence) {
     }
 }
 
+/** 单次完成后最多推进的周期数，防御被篡改的极端时间戳造成的长循环。 */
+private const val MAX_RECURRENCE_ADVANCE_STEPS = 100_000
+
+private const val ONE_DAY_MILLIS = 24L * 60L * 60_000L
+
 /** 保留原有节奏：从原定时间不断顺延，直到落在未来。 */
-private fun advanceUntilFuture(dueAt: Long, recurrence: Recurrence): Long =
-    Calendar.getInstance().apply {
-        timeInMillis = dueAt
-        do {
-            addOnePeriod(recurrence)
-        } while (timeInMillis <= System.currentTimeMillis())
-    }.timeInMillis
+private fun advanceUntilFuture(dueAt: Long, recurrence: Recurrence): Long {
+    val fallback = System.currentTimeMillis() + ONE_DAY_MILLIS
+    return try {
+        val calendar = Calendar.getInstance().apply { timeInMillis = dueAt }
+        repeat(MAX_RECURRENCE_ADVANCE_STEPS) {
+            calendar.addOnePeriod(recurrence)
+            if (calendar.timeInMillis > System.currentTimeMillis()) {
+                return calendar.timeInMillis
+            }
+        }
+        fallback
+    } catch (_: RuntimeException) {
+        // 异常时间戳（例如被篡改的备份）可能让 Calendar 溢出；退回一天后，避免 ANR。
+        fallback
+    }
+}
 
 /** 从今天继续：把今天当作新的起点，保持原来的时/分。 */
 private fun continueFromToday(dueAt: Long, recurrence: Recurrence): Long {
