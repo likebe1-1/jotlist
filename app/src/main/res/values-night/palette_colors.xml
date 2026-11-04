@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 组件调色板 · 深色值（与 values/palette_colors.xml 一一对应） -->
+    <color name="palette_mist_surface_start">#1C1F2A</color>
+    <color name="palette_mist_surface_end">#161923</color>
+    <color name="palette_mist_outline">#2C3140</color>
+    <color name="palette_mist_todo_accent">#9AA8FF</color>
+    <color name="palette_mist_note_accent">#6FD8C6</color>
+    <color name="palette_mist_ring">#4E5678</color>
+
+    <color name="palette_terracotta_surface_start">#241C18</color>
+    <color name="palette_terracotta_surface_end">#1B1512</color>
+    <color name="palette_terracotta_outline">#3A2C24</color>
+    <color name="palette_terracotta_todo_accent">#F0A184</color>
+    <color name="palette_terracotta_note_accent">#E0BC72</color>
+    <color name="palette_terracotta_ring">#6B4A3B</color>
+
+    <color name="palette_pine_surface_start">#181F1C</color>
+    <color name="palette_pine_surface_end">#131815</color>
+    <color name="palette_pine_outline">#26332D</color>
+    <color name="palette_pine_todo_accent">#7BD3AF</color>
+    <color name="palette_pine_note_accent">#8FBBEF</color>
+    <color name="palette_pine_ring">#3D5A4C</color>
+</resources>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 空状态插图：细描边圆圈 + 勾，跟列表里的空环同一套视觉语言 -->
+<!-- Empty state illustration, palette agnostic. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="40dp"
     android:height="40dp"
@@ -8,12 +8,12 @@
     <path
         android:fillColor="@android:color/transparent"
         android:pathData="M12,3.6a8.4,8.4 0,1 0,0.01 0z"
-        android:strokeColor="@color/widget_ring"
+        android:strokeColor="@color/widget_empty_text"
         android:strokeWidth="1.3" />
     <path
         android:fillColor="@android:color/transparent"
         android:pathData="M8.5,12.3 L11.1,14.9 L15.7,9.8"
-        android:strokeColor="@color/widget_accent"
+        android:strokeColor="@color/widget_empty_text"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:strokeWidth="1.6" />

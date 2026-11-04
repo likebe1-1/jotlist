@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 组件调色板：A 雾蓝 · 青碧 / B 赤陶 · 琥珀 / C 松绿 · 石蓝
+         运行时由 WidgetPalette 选择，浅色值见 values/，深色值见 values-night/ -->
+    <color name="palette_mist_surface_start">#FFFFFFFF</color>
+    <color name="palette_mist_surface_end">#F4F7FE</color>
+    <color name="palette_mist_outline">#E3E8F4</color>
+    <color name="palette_mist_todo_accent">#4C5FD5</color>
+    <color name="palette_mist_note_accent">#0E8C7C</color>
+    <color name="palette_mist_ring">#C6CDF2</color>
+
+    <color name="palette_terracotta_surface_start">#FFFFFCF8</color>
+    <color name="palette_terracotta_surface_end">#FFF7ED</color>
+    <color name="palette_terracotta_outline">#F0E1D6</color>
+    <color name="palette_terracotta_todo_accent">#C2532A</color>
+    <color name="palette_terracotta_note_accent">#A9762B</color>
+    <color name="palette_terracotta_ring">#E9C6B4</color>
+
+    <color name="palette_pine_surface_start">#FFFFFFFF</color>
+    <color name="palette_pine_surface_end">#F1F8F6</color>
+    <color name="palette_pine_outline">#DCEBE5</color>
+    <color name="palette_pine_todo_accent">#1F7A5C</color>
+    <color name="palette_pine_note_accent">#2F6FB5</color>
+    <color name="palette_pine_ring">#BFDCCF</color>
+</resources>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 笔记组件的计数药丸 -->
+<!-- Neutral count pill; accent colour is applied at runtime. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="@color/note_accent_soft" />
+    <solid android:color="@color/widget_pill" />
     <corners android:radius="999dp" />
 </shape>

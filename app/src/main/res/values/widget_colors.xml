@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 共享中性色：两套组件同一底板，靠强调色区分 -->
+    <!-- 与调色板无关的中性色：文字、底板兜底值、按钮药丸、进度条 -->
     <color name="widget_surface_start">#FFFFFFFF</color>
     <color name="widget_surface_end">#F4F7FE</color>
     <color name="widget_outline">#E3E8F4</color>
@@ -9,16 +9,19 @@
     <color name="widget_divider">#EDF0F8</color>
     <color name="widget_empty_text">#8A8FA3</color>
     <color name="widget_progress_track">#E5EAF6</color>
+    <color name="widget_progress_fill">#6E7488</color>
 
-    <!-- 待办：雾蓝靛 -->
+    <!-- 按钮药丸：中性，保持三套调色板通用 -->
+    <color name="widget_pill">#F1F3F9</color>
+    <color name="widget_ripple_neutral">#1F14161F</color>
+
+    <!-- 默认（雾蓝 · 青碧）静态值：供布局初始预览 / 未设置时使用 -->
     <color name="widget_accent">#4C5FD5</color>
     <color name="widget_accent_soft">#EDF0FE</color>
     <color name="widget_badge_text">#3B4BC4</color>
     <color name="widget_ring">#C6CDF2</color>
-    <color name="widget_progress_fill">#4C5FD5</color>
     <color name="widget_ripple">#1F4C5FD5</color>
 
-    <!-- 笔记：青碧 -->
     <color name="note_accent">#0E8C7C</color>
     <color name="note_accent_soft">#E5F5F1</color>
     <color name="note_badge_text">#0B7A6C</color>

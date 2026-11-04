@@ -25,6 +25,8 @@ import android.widget.TextView
  */
 class WidgetPreviewActivity : Activity() {
 
+    private var previewPalette: WidgetPalette = WidgetPalette.MIST
+
     private val tasks = listOf(
         "写周报并同步给组里",
         "18:00 前回复客户邮件",
@@ -86,6 +88,19 @@ class WidgetPreviewActivity : Activity() {
             setPadding(dp(20), dp(28), dp(20), dp(48))
         }
 
+        // 预览用的调色板：默认取设置里保存的那套，也可以用 --es palette PINE 临时覆盖
+        previewPalette = intent?.getStringExtra("palette")
+            ?.let { name -> WidgetPalette.entries.firstOrNull { it.name.equals(name, true) } }
+            ?: readWidgetPalette(this)
+        column.addView(
+            TextView(this).apply {
+                text = "调色板：${previewPalette.label}"
+                setTextColor(Color.parseColor("#C9B6FF"))
+                textSize = 13f
+                setPadding(0, 0, 0, 4)
+            }
+        )
+
         addPreview(column, "待办 · 紧凑 2×2 · 160×160dp", R.layout.todo_widget_compact, 160, 160, 2)
         addPreview(column, "待办 · 标准 4×2 · 330×140dp", R.layout.todo_widget_standard, 330, 140, 3)
         addPreview(column, "待办 · 标准 4×3 · 330×190dp", R.layout.todo_widget_standard, 330, 190, 5)
@@ -145,8 +160,36 @@ class WidgetPreviewActivity : Activity() {
             layoutRes == R.layout.todo_widget_expanded
         ) {
             bindTodo(widget, rowCount)
+            applyPalette(widget, isNote = false)
         } else {
             bindNote(widget, rowCount)
+            applyPalette(widget, isNote = true)
+        }
+    }
+
+    /** 把当前预览的调色板套到已经 inflate 的布局上（和 RemoteViews 里的做法一致）。 */
+    private fun applyPalette(root: View, isNote: Boolean) {
+        val palette = previewPalette
+        val accent = if (isNote) palette.noteAccent(this) else palette.todoAccent(this)
+        val rootId = if (isNote) R.id.note_widget_root else R.id.widget_root
+        root.findViewById<View>(rootId)?.setBackgroundResource(palette.backgroundRes)
+
+        val accentIds = if (isNote) {
+            intArrayOf(R.id.note_count, R.id.note_add)
+        } else {
+            intArrayOf(R.id.widget_count, R.id.widget_add, R.id.widget_quick_capture)
+        }
+        accentIds.forEach { id ->
+            root.findViewById<TextView>(id)?.setTextColor(accent)
+        }
+
+        if (!isNote) {
+            intArrayOf(
+                R.id.widget_complete_1, R.id.widget_complete_2, R.id.widget_complete_3,
+                R.id.widget_complete_4, R.id.widget_complete_5, R.id.widget_complete_6
+            ).forEach { id ->
+                root.findViewById<View>(id)?.setBackgroundResource(palette.ringRes)
+            }
         }
     }
 

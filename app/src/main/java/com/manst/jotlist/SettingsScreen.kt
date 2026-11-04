@@ -1,18 +1,29 @@
 package com.manst.jotlist
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -62,6 +73,12 @@ internal fun SettingsScreen(
     var dndEnd by remember(initialDnd) { mutableStateOf(initialDnd.endMinute) }
     val onChanged = rememberUpdatedState(onDoNotDisturbChanged)
 
+    // 右上角三点菜单：组件配色
+    var menuExpanded by remember { mutableStateOf(false) }
+    var paletteDialogVisible by remember { mutableStateOf(false) }
+    var draftPalette by remember { mutableStateOf(readWidgetPalette(context)) }
+    var appliedPalette by remember { mutableStateOf(readWidgetPalette(context)) }
+
     fun applyDoNotDisturb(enabled: Boolean, start: Int, end: Int) {
         dndEnabled = enabled
         dndStart = start
@@ -89,6 +106,32 @@ internal fun SettingsScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("返回") }
             Text("设置", style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.weight(1f))
+            Box {
+                IconButton(
+                    onClick = {
+                        draftPalette = appliedPalette
+                        menuExpanded = true
+                    },
+                    modifier = Modifier.testTag("settings_more")
+                ) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "更多设置")
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("组件配色") },
+                        onClick = {
+                            menuExpanded = false
+                            draftPalette = appliedPalette
+                            paletteDialogVisible = true
+                        },
+                        modifier = Modifier.testTag("settings_widget_palette")
+                    )
+                }
+            }
         }
 
         SettingsSection(title = "外观") {
@@ -207,6 +250,60 @@ internal fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+
+    if (paletteDialogVisible) {
+        AlertDialog(
+            onDismissRequest = { paletteDialogVisible = false },
+            title = { Text("组件配色") },
+            text = {
+                Column {
+                    Text(
+                        "只影响桌面上的待办 / 笔记组件，App 界面外观不受影响。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    WidgetPalette.entries.forEach { palette ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { draftPalette = palette }
+                                .padding(vertical = 6.dp)
+                                .testTag("palette_${palette.name}"),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = draftPalette == palette,
+                                onClick = { draftPalette = palette }
+                            )
+                            Column(modifier = Modifier.padding(start = 4.dp)) {
+                                Text(palette.label, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    palette.hint,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        appliedPalette = draftPalette
+                        saveWidgetPalette(context, draftPalette)
+                        TodoWidgetProvider.refresh(context)
+                        NotesWidgetProvider.refresh(context)
+                        paletteDialogVisible = false
+                    }
+                ) { Text("应用") }
+            },
+            dismissButton = {
+                TextButton(onClick = { paletteDialogVisible = false }) { Text("取消") }
+            }
+        )
     }
 }
 

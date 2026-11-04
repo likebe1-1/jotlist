@@ -15,3 +15,6 @@ keystore.properties
 
 # Kotlin ±àÒëÆ÷ÁÙÊ±ÎÄ¼ş
 .kotlin/
+
+# æœ¬åœ°å®¡è®¡æŠ¥å‘Šï¼ˆä¸éšä»“åº“å‘å¸ƒï¼‰
+.audit/

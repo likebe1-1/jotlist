@@ -74,6 +74,16 @@ class TodoWidgetProvider : AppWidgetProvider() {
         val activeTodos = readActiveTodos(context)
         val visibleTodos = activeTodos.take(spec.rowsThatFit(heightDp))
 
+        // 调色板在设置页里选，这里把底板、计数、按钮和勾选环换成对应颜色
+        val palette = readWidgetPalette(context)
+        val accent = palette.todoAccent(context)
+        views.setInt(R.id.widget_root, "setBackgroundResource", palette.backgroundRes)
+        views.setTextColor(R.id.widget_count, accent)
+        views.setTextColor(R.id.widget_add, accent)
+        if (spec.showsQuickCapture) {
+            views.setTextColor(R.id.widget_quick_capture, accent)
+        }
+
         views.setOnClickPendingIntent(
             R.id.widget_add,
             createAddPendingIntent(context, appWidgetId)
@@ -118,6 +128,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
             if (todo != null) {
                 views.setTextViewText(row.text, todo.text)
                 views.setTextViewTextSize(row.text, TypedValue.COMPLEX_UNIT_SP, taskSp)
+                views.setInt(row.complete, "setBackgroundResource", palette.ringRes)
                 views.setContentDescription(
                     row.complete,
                     context.getString(R.string.widget_complete_task, todo.text)

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 头部圆形按钮底：浅紫药丸 + 触摸涟漪 -->
+<!-- Neutral pill used by both widgets; accent colour is applied at runtime. -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="@color/widget_ripple">
+    android:color="@color/widget_ripple_neutral">
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="@color/widget_accent_soft" />
+            <solid android:color="@color/widget_pill" />
             <corners android:radius="999dp" />
         </shape>
     </item>

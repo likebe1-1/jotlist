@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 共享中性色：深色底板 -->
+    <!-- 与调色板无关的中性色（深色） -->
     <color name="widget_surface_start">#1C1F2A</color>
     <color name="widget_surface_end">#161923</color>
     <color name="widget_outline">#2C3140</color>
@@ -9,16 +9,18 @@
     <color name="widget_divider">#262B38</color>
     <color name="widget_empty_text">#868BA0</color>
     <color name="widget_progress_track">#2A2F3E</color>
+    <color name="widget_progress_fill">#A3A8BD</color>
 
-    <!-- 待办：雾蓝靛（深色版提亮） -->
+    <color name="widget_pill">#2A2F3E</color>
+    <color name="widget_ripple_neutral">#33ECEEF6</color>
+
+    <!-- 默认（雾蓝 · 青碧）静态值 · 深色 -->
     <color name="widget_accent">#9AA8FF</color>
     <color name="widget_accent_soft">#232842</color>
     <color name="widget_badge_text">#B4BFFF</color>
     <color name="widget_ring">#4E5678</color>
-    <color name="widget_progress_fill">#9AA8FF</color>
     <color name="widget_ripple">#339AA8FF</color>
 
-    <!-- 笔记：青碧（深色版提亮） -->
     <color name="note_accent">#6FD8C6</color>
     <color name="note_accent_soft">#1B2F2C</color>
     <color name="note_badge_text">#8FE3D4</color>

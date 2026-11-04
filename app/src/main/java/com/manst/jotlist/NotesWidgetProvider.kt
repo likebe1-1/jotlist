@@ -46,6 +46,13 @@ class NotesWidgetProvider : AppWidgetProvider() {
         val notes = readNotes(context)
         val visibleNotes = notes.take(spec.rowsThatFit(heightDp))
 
+        // 与待办组件共用同一套调色板，这里取其中的笔记主色
+        val palette = readWidgetPalette(context)
+        val accent = palette.noteAccent(context)
+        views.setInt(R.id.note_widget_root, "setBackgroundResource", palette.backgroundRes)
+        views.setTextColor(R.id.note_count, accent)
+        views.setTextColor(R.id.note_add, accent)
+
         views.setOnClickPendingIntent(
             R.id.note_add,
             createQuickCapturePendingIntent(context, appWidgetId)
