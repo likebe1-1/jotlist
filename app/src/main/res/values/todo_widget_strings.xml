@@ -2,7 +2,12 @@
 <resources>
     <string name="widget_title">待办</string>
     <string name="widget_add_task">添加待办</string>
-    <string name="widget_empty">暂无待办</string>
+    <string name="widget_empty">还没有待办，点右上角 + 开始</string>
+    <string name="widget_empty_compact">点 + 添加</string>
     <string name="widget_description">快速查看和完成待办</string>
     <string name="widget_complete_task">完成：%1$s</string>
+    <string name="widget_count">%1$d</string>
+    <string name="widget_footer_progress">今天完成 %1$d/%2$d</string>
+    <string name="widget_footer_none">今天还没开始</string>
+    <string name="widget_today">今天</string>
 </resources>

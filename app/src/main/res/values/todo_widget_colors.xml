@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="widget_surface">#FFF8FA</color>
-    <color name="widget_outline">#E5DCE3</color>
-    <color name="widget_action_surface">#F1E7F1</color>
-    <color name="widget_text">#29242C</color>
-    <color name="widget_secondary_text">#746C76</color>
-    <color name="widget_accent">#6750A4</color>
-    <color name="widget_complete">#456B54</color>
+    <!-- 浅色：品牌色取自启动页渐变 #16225E → #4B3A9E → #A98BF5 -->
+    <color name="widget_surface_start">#FFFFFFFF</color>
+    <color name="widget_surface_end">#FFF4F0FF</color>
+    <color name="widget_outline">#E7E1F5</color>
+    <color name="widget_text">#1C1830</color>
+    <color name="widget_secondary_text">#6B6485</color>
+    <color name="widget_accent">#4B3A9E</color>
+    <color name="widget_accent_soft">#EFE9FB</color>
+    <color name="widget_badge_text">#4B3A9E</color>
+    <color name="widget_divider">#F0ECF9</color>
+    <color name="widget_ring">#C9BFE6</color>
+    <color name="widget_empty_text">#8A83A6</color>
+    <color name="widget_progress_track">#E7E0F5</color>
+    <color name="widget_progress_fill">#4B3A9E</color>
+    <color name="widget_ripple">#1F4B3A9E</color>
 </resources>

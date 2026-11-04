@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 深色：同一套色板压暗，保证与系统深色壁纸共存时不刺眼 -->
+    <color name="widget_surface_start">#241F33</color>
+    <color name="widget_surface_end">#1A1626</color>
+    <color name="widget_outline">#332D46</color>
+    <color name="widget_text">#EFEAFB</color>
+    <color name="widget_secondary_text">#A69EC4</color>
+    <color name="widget_accent">#C0ABFF</color>
+    <color name="widget_accent_soft">#2B2540</color>
+    <color name="widget_badge_text">#C9B6FF</color>
+    <color name="widget_divider">#2C2740</color>
+    <color name="widget_ring">#5A5378</color>
+    <color name="widget_empty_text">#8C85A8</color>
+    <color name="widget_progress_track">#342E4D</color>
+    <color name="widget_progress_fill">#C0ABFF</color>
+    <color name="widget_ripple">#33C0ABFF</color>
+</resources>

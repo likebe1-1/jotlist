@@ -1,35 +1,102 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="TodoWidgetTitle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textColor">@color/widget_text</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TodoWidgetCount">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">6dp</item>
+        <item name="android:background">@drawable/todo_widget_badge_background</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:gravity">center</item>
+        <item name="android:minWidth">18dp</item>
+        <item name="android:paddingStart">6dp</item>
+        <item name="android:paddingTop">1dp</item>
+        <item name="android:paddingEnd">6dp</item>
+        <item name="android:paddingBottom">1dp</item>
+        <item name="android:textColor">@color/widget_badge_text</item>
+        <item name="android:textSize">10sp</item>
+    </style>
+
+    <style name="TodoWidgetAction">
+        <item name="android:layout_width">@dimen/widget_action_size</item>
+        <item name="android:layout_height">@dimen/widget_action_size</item>
+        <item name="android:layout_marginStart">4dp</item>
+        <item name="android:background">@drawable/todo_widget_action_background</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/widget_accent</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+    <!-- 行高固定，剩余空间由外层 body 的 gravity 均分，避免任务少时被拉成"大行距" -->
     <style name="TodoWidgetRow">
         <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">0dp</item>
-        <item name="android:layout_weight">1</item>
+        <item name="android:layout_height">@dimen/widget_row_height</item>
         <item name="android:gravity">center_vertical</item>
         <item name="android:orientation">horizontal</item>
         <item name="android:visibility">gone</item>
     </style>
 
+    <style name="TodoWidgetRing">
+        <item name="android:layout_width">@dimen/widget_ring_size</item>
+        <item name="android:layout_height">@dimen/widget_ring_size</item>
+        <item name="android:background">@drawable/todo_widget_check_ring</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
     <style name="TodoWidgetTask">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_marginStart">8dp</item>
         <item name="android:layout_weight">1</item>
         <item name="android:ellipsize">end</item>
         <item name="android:gravity">center_vertical</item>
         <item name="android:maxLines">1</item>
         <item name="android:textColor">@color/widget_text</item>
-        <item name="android:textSize">13sp</item>
+        <item name="android:textSize">12.5sp</item>
     </style>
 
-    <style name="TodoWidgetComplete">
-        <item name="android:layout_width">30dp</item>
-        <item name="android:layout_height">26dp</item>
-        <item name="android:background">@drawable/todo_widget_action_background</item>
-        <item name="android:clickable">true</item>
-        <item name="android:focusable">true</item>
+    <style name="TodoWidgetEmptyText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">6dp</item>
         <item name="android:gravity">center</item>
-        <item name="android:text">&#x2713;</item>
-        <item name="android:textColor">@color/widget_complete</item>
-        <item name="android:textSize">16sp</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:textColor">@color/widget_empty_text</item>
+        <item name="android:textSize">11.5sp</item>
+    </style>
+
+    <style name="TodoWidgetDate">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">1dp</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textColor">@color/widget_secondary_text</item>
+        <item name="android:textSize">10sp</item>
+    </style>
+
+    <style name="TodoWidgetFooterText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">8dp</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textColor">@color/widget_secondary_text</item>
+        <item name="android:textSize">10sp</item>
     </style>
 </resources>

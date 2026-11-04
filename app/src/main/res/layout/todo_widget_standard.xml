@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 标准 4x2 至 4x3：标题 + 计数 + 记/加入口 + 最多五条待办 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/todo_widget_background"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/widget_padding_h"
+    android:paddingTop="@dimen/widget_padding_v"
+    android:paddingEnd="@dimen/widget_padding_h"
+    android:paddingBottom="@dimen/widget_padding_v">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/widget_header_height"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_title"
+            style="@style/TodoWidgetTitle"
+            android:text="@string/widget_title" />
+
+        <TextView
+            android:id="@+id/widget_count"
+            style="@style/TodoWidgetCount" />
+
+        <TextView
+            android:id="@+id/widget_quick_capture"
+            style="@style/TodoWidgetAction"
+            android:contentDescription="@string/widget_quick_capture"
+            android:text="记"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/widget_add"
+            style="@style/TodoWidgetAction"
+            android:contentDescription="@string/widget_add_task"
+            android:text="+" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/widget_row_1"
+            style="@style/TodoWidgetRow">
+
+            <TextView
+                android:id="@+id/widget_complete_1"
+                style="@style/TodoWidgetRing" />
+
+            <TextView
+                android:id="@+id/widget_task_1"
+                style="@style/TodoWidgetTask" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_row_2"
+            style="@style/TodoWidgetRow">
+
+            <TextView
+                android:id="@+id/widget_complete_2"
+                style="@style/TodoWidgetRing" />
+
+            <TextView
+                android:id="@+id/widget_task_2"
+                style="@style/TodoWidgetTask" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_row_3"
+            style="@style/TodoWidgetRow">
+
+            <TextView
+                android:id="@+id/widget_complete_3"
+                style="@style/TodoWidgetRing" />
+
+            <TextView
+                android:id="@+id/widget_task_3"
+                style="@style/TodoWidgetTask" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_row_4"
+            style="@style/TodoWidgetRow">
+
+            <TextView
+                android:id="@+id/widget_complete_4"
+                style="@style/TodoWidgetRing" />
+
+            <TextView
+                android:id="@+id/widget_task_4"
+                style="@style/TodoWidgetTask" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_row_5"
+            style="@style/TodoWidgetRow">
+
+            <TextView
+                android:id="@+id/widget_complete_5"
+                style="@style/TodoWidgetRing" />
+
+            <TextView
+                android:id="@+id/widget_task_5"
+                style="@style/TodoWidgetTask" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_empty"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_widget_empty" />
+
+            <TextView
+                style="@style/TodoWidgetEmptyText"
+                android:text="@string/widget_empty" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

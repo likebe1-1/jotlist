@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="widget_corner_radius">22dp</dimen>
+    <dimen name="widget_padding_h">12dp</dimen>
+    <dimen name="widget_padding_v">10dp</dimen>
+    <dimen name="widget_header_height">24dp</dimen>
+    <dimen name="widget_row_height">26dp</dimen>
+    <dimen name="widget_action_size">24dp</dimen>
+    <dimen name="widget_ring_size">17dp</dimen>
+</resources>

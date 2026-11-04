@@ -26,7 +26,7 @@
 - **笔记与待办互通**：Markdown 笔记内可插入待办条目
 - **日历视图与完成统计**：按日期查看安排，统计今日、本周、连续完成天数
 - **外观可调**：浅色 / 深色 / 跟随系统，三种列表密度
-- **桌面小组件**：直接在桌面勾选任务
+- **桌面小组件**：2×2 / 4×2 / 4×4 三套布局按尺寸自动切换，深浅色主题、系统圆角、RTL 与平板/折叠屏随桌面自适应，可直接勾选任务
 - **完全离线**：不申请 `INTERNET` 权限，数据只存在本机
 
 ## 截图
@@ -62,6 +62,13 @@
 # 发布包（需要在根目录放 keystore.properties）
 ./gradlew :app:bundleRelease      # Google Play 用 AAB
 ./gradlew :app:assembleRelease    # 侧载用 APK
+```
+
+小组件的三套尺寸布局可以在调试包里直接走查（不需要往桌面拖）：
+
+```bash
+adb shell am start -n com.manst.jotlist/.WidgetPreviewActivity
+adb shell am start -n com.manst.jotlist/.WidgetPreviewActivity --ez pin true  # 直接弹出"添加到主屏幕"
 ```
 
 签名配置从项目根目录的 `keystore.properties` 读取（已被 `.gitignore` 排除）：
