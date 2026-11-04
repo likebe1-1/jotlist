@@ -166,7 +166,7 @@ class NotesWidgetProvider : AppWidgetProvider() {
                 RowIds(R.id.note_row_2, R.id.note_item_title_2, R.id.note_item_body_2),
                 RowIds(R.id.note_row_3, R.id.note_item_title_3, R.id.note_item_body_3)
             ),
-            chromeHeightDp = 44
+            chromeHeightDp = 50
         ),
         STANDARD(
             layoutRes = R.layout.note_widget_standard,
@@ -176,7 +176,7 @@ class NotesWidgetProvider : AppWidgetProvider() {
                 RowIds(R.id.note_row_3, R.id.note_item_title_3, R.id.note_item_body_3),
                 RowIds(R.id.note_row_4, R.id.note_item_title_4, R.id.note_item_body_4)
             ),
-            chromeHeightDp = 44
+            chromeHeightDp = 50
         ),
         EXPANDED(
             layoutRes = R.layout.note_widget_expanded,
@@ -188,7 +188,7 @@ class NotesWidgetProvider : AppWidgetProvider() {
                 RowIds(R.id.note_row_5, R.id.note_item_title_5, R.id.note_item_body_5),
                 RowIds(R.id.note_row_6, R.id.note_item_title_6, R.id.note_item_body_6)
             ),
-            chromeHeightDp = 44
+            chromeHeightDp = 50
         );
 
         fun rowsThatFit(heightDp: Int): Int {

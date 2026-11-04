@@ -73,6 +73,12 @@ class MainActivity : ComponentActivity() {
             // 否则每次切回该 Tab（界面会被重建）都会再弹一次窗。
             var pendingOpenAddTodo by remember { mutableStateOf(openAddFromWidget) }
             var pendingQuickCapture by remember { mutableStateOf(openQuickCaptureFromWidget) }
+            // 进 App 时顺手把两枚桌面组件刷一遍：系统在覆盖安装后不一定会重新请求，
+            // 否则组件会停在 initialLayout 的空壳状态。
+            LaunchedEffect(Unit) {
+                TodoWidgetProvider.refresh(this@MainActivity)
+                NotesWidgetProvider.refresh(this@MainActivity)
+            }
             val darkTheme = when (appearanceMode) {
                 AppearanceMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
                 AppearanceMode.LIGHT -> false

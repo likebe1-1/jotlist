@@ -30,7 +30,7 @@
             style="@style/TodoWidgetAction"
             android:contentDescription="@string/widget_quick_capture"
             android:text="记"
-            android:textSize="11sp" />
+            android:textSize="13.5sp" />
 
         <TextView
             android:id="@+id/widget_add"

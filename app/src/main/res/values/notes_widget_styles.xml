@@ -39,7 +39,7 @@
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:gravity">center</item>
         <item name="android:textColor">@color/note_accent</item>
-        <item name="android:textSize">13sp</item>
+        <item name="android:textSize">14.5sp</item>
     </style>
 
     <style name="NoteWidgetRow">

@@ -39,7 +39,7 @@
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:gravity">center</item>
         <item name="android:textColor">@color/widget_accent</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textSize">17sp</item>
     </style>
 
     <!-- 行高固定，数量只影响字号（见 TodoWidgetProvider 的 taskSp 分档），

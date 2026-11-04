@@ -336,7 +336,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
             showsDate = false,
             showsQuickCapture = false,
             showsFooter = false,
-            chromeHeightDp = 44
+            chromeHeightDp = 50
         ),
         STANDARD(
             layoutRes = R.layout.todo_widget_standard,
@@ -351,7 +351,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
             showsDate = false,
             showsQuickCapture = true,
             showsFooter = false,
-            chromeHeightDp = 44
+            chromeHeightDp = 50
         ),
         EXPANDED(
             layoutRes = R.layout.todo_widget_expanded,
@@ -367,7 +367,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
             showsDate = true,
             showsQuickCapture = true,
             showsFooter = true,
-            chromeHeightDp = 88
+            chromeHeightDp = 94
         );
 
         fun rowsThatFit(heightDp: Int): Int {
