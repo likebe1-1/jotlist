@@ -108,6 +108,12 @@ UI 层用 Compose 仪器测试覆盖主要流程。
 已关闭 Android 自动备份（`allowBackup=false`），待办与笔记不会进入系统云备份或设备迁移备份。
 详见 [隐私政策](release-assets/privacy-policy.md)。
 
+## 安全
+
+2026-11 做过一次覆盖 UI / 平台层 / 供应链的安全审计（P0–P3 分级），修复了小组件导出面、
+自动备份、通知锁屏隐私、构建与 CI 供应链等问题。审计结论、修复清单和残留风险见
+[安全审计报告](docs/security-audit-2026-11.md)；漏洞报告方式见 [SECURITY.md](SECURITY.md)。
+
 ## 许可证
 
 [MIT](LICENSE)
