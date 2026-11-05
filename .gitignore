@@ -23,3 +23,6 @@ keystore.properties
 .audit/
 # 沙箱 ACL 修复工具的本地记录
 .acl-recovery/
+
+# 本地调试截图
+.dsh-notify-test/
