@@ -147,6 +147,9 @@ internal fun NotesScreen(
     }
 
     if (showQuickCapture) {
+        // 弹窗打开即聚焦输入框，省一次点击（widget / 通知进入快速收集时尤其需要）。
+        val quickCaptureFocus = remember { FocusRequester() }
+        LaunchedEffect(Unit) { quickCaptureFocus.requestFocus() }
         AlertDialog(
             onDismissRequest = {
                 showQuickCapture = false
@@ -162,7 +165,9 @@ internal fun NotesScreen(
                     },
                     label = { Text("先记下来，稍后整理") },
                     minLines = 3,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(quickCaptureFocus)
                 )
                 if (!canSave) {
                     Text(

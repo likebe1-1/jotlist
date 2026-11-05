@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -82,6 +83,7 @@ internal fun UnifiedSearchScreen(
         JotlistHeader(title = "搜索")
         val searchFocus = remember { FocusRequester() }
         val focusManager = LocalFocusManager.current
+        val keyboardController = LocalSoftwareKeyboardController.current
         LaunchedEffect(Unit) { searchFocus.requestFocus() }
         OutlinedTextField(
             value = query,
@@ -97,7 +99,13 @@ internal fun UnifiedSearchScreen(
             },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+            keyboardActions = KeyboardActions(
+                onSearch = {
+                    // clearFocus 只移走焦点，软键盘不会自动收起，需要显式 hide。
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                }
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(searchFocus)

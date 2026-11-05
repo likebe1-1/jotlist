@@ -468,6 +468,10 @@ internal fun TodoAppScreen(
                         showClearConfirm = false
                         offerUndo("已清空 ${cleared.size} 条已完成") {
                             todoList.addAll(cleared)
+                            // 清空时撤掉了提醒，撤销后给重复任务把「下次恢复」闹钟排回去。
+                            cleared.forEach { item ->
+                                item.resetAt?.let { scheduleResetReminder(context, item) }
+                            }
                         }
                     },
                     colors = ButtonDefaults.textButtonColors(
@@ -684,6 +688,19 @@ internal fun TodoAppScreen(
             offerUndo("已完成「${item.text}」") {
                 val restoreIndex = todoList.indexOfFirst { it.id == updated.id }
                 if (restoreIndex >= 0) todoList[restoreIndex] = item
+                // 撤销完成要把统计里刚记的这次完成一起回滚，否则「今日完成/连续天数」会虚高。
+                if (completionHistoryReady) {
+                    val historyIndex = completionHistory.lastIndexOf(completedAt)
+                    if (historyIndex >= 0) {
+                        completionHistory = completionHistory.toMutableList().apply {
+                            removeAt(historyIndex)
+                        }
+                        saveCompletionHistory(context, completionHistory)
+                    }
+                }
+                // 恢复原提醒，并撤掉为重复任务排的「下次自动恢复」闹钟。
+                cancelReminderForId(context, item.id)
+                scheduleReminder(context, item)
             }
         }
     }
@@ -696,6 +713,12 @@ internal fun TodoAppScreen(
         todoList.removeAt(index)
         offerUndo("已删除「${item.text}」") {
             todoList.add(index.coerceIn(0, todoList.size), item)
+            // 删除时撤掉了提醒，撤销删除要把提醒排回去。
+            if (item.isDone) {
+                item.resetAt?.let { scheduleResetReminder(context, item) }
+            } else {
+                scheduleReminder(context, item)
+            }
         }
     }
 
@@ -1903,8 +1926,9 @@ internal fun TodoEditorScreen(
                 value = text,
                 onValueChange = { text = it },
                 label = { Text("任务内容") },
-                singleLine = false,
-                minLines = 1,
+                // 单行才能让软键盘把回车当成 ImeAction.Done（下面的 onDone 直接保存）；
+                // 多行输入框的回车永远是换行，IME 完成键不会触发保存。
+                singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(titleFocus),
