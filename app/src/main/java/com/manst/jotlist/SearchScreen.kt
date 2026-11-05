@@ -3,6 +3,14 @@ package com.manst.jotlist
 import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
@@ -68,17 +76,31 @@ internal fun UnifiedSearchScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .imePadding()
             .padding(16.dp)
     ) {
         JotlistHeader(title = "搜索")
+        val searchFocus = remember { FocusRequester() }
+        val focusManager = LocalFocusManager.current
+        LaunchedEffect(Unit) { searchFocus.requestFocus() }
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
             label = { Text("搜索笔记、标签和待办") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { query = "" }) {
+                        Icon(Icons.Default.Close, contentDescription = "清除搜索内容")
+                    }
+                }
+            },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
             modifier = Modifier
                 .fillMaxWidth()
+                .focusRequester(searchFocus)
                 .testTag("unified_search_input")
         )
         Row(

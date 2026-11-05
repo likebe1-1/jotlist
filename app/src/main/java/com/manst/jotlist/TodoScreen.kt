@@ -18,6 +18,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -57,6 +64,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Size
 import com.manst.jotlist.ui.theme.PriorityStripeHigh
@@ -75,9 +83,23 @@ internal fun TodoAppScreen(
     onOpenNote: (Long) -> Unit = {},
     onAppearanceChange: (AppearanceMode) -> Unit = {},
     onDensityChange: (UiDensity) -> Unit = {},
-    onEditorVisibilityChange: (Boolean) -> Unit = {}
+    onEditorVisibilityChange: (Boolean) -> Unit = {},
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    /** 操作后给一条可撤销的 Snackbar：勾错、删错都不用去筛选里翻。 */
+    fun offerUndo(message: String, onUndo: () -> Unit) {
+        scope.launch {
+            val result = snackbarHostState.showSnackbar(
+                message = message,
+                actionLabel = "撤销",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) onUndo()
+        }
+    }
 
     val todoList = remember { mutableStateListOf<TodoItem>() }
     val todoListState = rememberLazyListState()
@@ -440,9 +462,13 @@ internal fun TodoAppScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        todoList.filter { it.isDone }.forEach { cancelReminder(context, it) }
+                        val cleared = todoList.filter { it.isDone }
+                        cleared.forEach { cancelReminder(context, it) }
                         todoList.removeAll { it.isDone }
                         showClearConfirm = false
+                        offerUndo("已清空 ${cleared.size} 条已完成") {
+                            todoList.addAll(cleared)
+                        }
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
@@ -655,6 +681,21 @@ internal fun TodoAppScreen(
                     android.widget.Toast.LENGTH_SHORT
                 ).show()
             }
+            offerUndo("已完成「${item.text}」") {
+                val restoreIndex = todoList.indexOfFirst { it.id == updated.id }
+                if (restoreIndex >= 0) todoList[restoreIndex] = item
+            }
+        }
+    }
+
+    /** 删除不再弹确认框：先删掉，再给 3 秒撤销窗口。 */
+    fun deleteWithUndo(item: TodoItem) {
+        val index = todoList.indexOfFirst { it.id == item.id }
+        if (index < 0) return
+        cancelReminder(context, item)
+        todoList.removeAt(index)
+        offerUndo("已删除「${item.text}」") {
+            todoList.add(index.coerceIn(0, todoList.size), item)
         }
     }
 
@@ -1086,7 +1127,7 @@ internal fun TodoAppScreen(
                             exactAlarmWarning = !scheduleReminder(context, updated)
                         }
                     },
-                    onDelete = { pendingDelete = item },
+                    onDelete = { deleteWithUndo(item) },
                     highlighted = highlightedTodoId == item.id,
                     onUnplan = {
                         val index = todoList.indexOfFirst { it.id == item.id }
@@ -1525,22 +1566,34 @@ internal fun TodoRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = density.rowMinHeight)
+                // 整行点击进编辑；复选框和 ⋮ 各自消费自己的点击，不会冒泡到这里
+                .clickable(onClick = onEdit)
                 .padding(start = density.horizontalPadding, end = 2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Checkbox(
-                checked = item.isDone,
-                onCheckedChange = onCheckedChange,
+            // 视觉上还是 34/40/44dp 的小方框，但热区撑到 48dp 无障碍最小值
+            Box(
                 modifier = Modifier
-                    .size(density.controlSize)
+                    .size(48.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onCheckedChange(!item.isDone) }
                     .semantics {
                         contentDescription = if (item.isDone) {
                             "标记${item.text}为未完成"
                         } else {
                             "标记${item.text}为已完成"
                         }
-                    }
-            )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Checkbox(
+                    checked = item.isDone,
+                    onCheckedChange = null,
+                    modifier = Modifier.size(density.controlSize)
+                )
+            }
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -1741,9 +1794,83 @@ internal fun TodoEditorScreen(
     }
     val invalidDueTime = dueAt?.let { it <= System.currentTimeMillis() } ?: false
 
+    // —— 编辑态保护：系统返回键不再直接退出 App，有改动先确认 ——
+    val dirty = if (initialItem == null) {
+        text.isNotBlank() || category.isNotBlank() || subtasks.isNotEmpty() || dueAtMillis > 0L
+    } else {
+        text != initialItem.text ||
+            category != initialItem.category ||
+            priority != initialItem.priority ||
+            dueAtMillis != (initialItem.dueAt ?: 0L) ||
+            reminderMinutesBefore != initialItem.reminderMinutesBefore ||
+            isPinned != initialItem.isPinned ||
+            recurrence.name != initialItem.recurrence ||
+            subtasks.toList() != initialItem.subtasks
+    }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
+
+    fun attemptDismiss() {
+        if (dirty) showDiscardConfirm = true else onDismiss()
+    }
+
+    BackHandler { attemptDismiss() }
+
+    // 新建任务时自动聚焦并弹键盘：少点一次输入框
+    val titleFocus = remember { FocusRequester() }
+    LaunchedEffect(initialItem?.id) {
+        if (initialItem == null) titleFocus.requestFocus()
+    }
+
+    fun persist() {
+        onSave(
+            TodoItem(
+                id = initialItem?.id ?: nextTodoId(),
+                text = text.trim(),
+                isDone = initialItem?.isDone ?: false,
+                createdAt = initialItem?.createdAt ?: System.currentTimeMillis(),
+                dueAt = dueAt,
+                category = category.trim(),
+                priority = priority,
+                reminderMinutesBefore = reminderMinutesBefore,
+                isPinned = isPinned,
+                recurrence = recurrence.name,
+                subtasks = subtasks.toList(),
+                recurrenceNextId = initialItem?.recurrenceNextId,
+                linkedNoteId = initialItem?.linkedNoteId,
+                completedAt = initialItem?.completedAt,
+                plannedAt = initialItem?.plannedAt,
+                focusDate = initialItem?.focusDate,
+                reviewHiddenUntil = null
+            )
+        )
+    }
+
+    if (showDiscardConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = { Text("放弃这次编辑？") },
+            text = { Text("未保存的修改会丢失。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDiscardConfirm = false
+                        onDismiss()
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) { Text("放弃") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardConfirm = false }) { Text("继续编辑") }
+            }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
+            .imePadding()
             .padding(horizontal = 20.dp)
     ) {
         // 顶部操作栏固定，字段再多也不用滚上来才能保存。
@@ -1752,7 +1879,7 @@ internal fun TodoEditorScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = { attemptDismiss() }) { Text("取消") }
             Text(
                 text = if (initialItem == null) "新建任务" else "编辑任务",
                 style = MaterialTheme.typography.titleLarge
@@ -1760,29 +1887,7 @@ internal fun TodoEditorScreen(
             TextButton(
                 enabled = text.isNotBlank() && !invalidDueTime,
                 modifier = Modifier.testTag("save_task"),
-                onClick = {
-                    onSave(
-                        TodoItem(
-                            id = initialItem?.id ?: nextTodoId(),
-                            text = text.trim(),
-                            isDone = initialItem?.isDone ?: false,
-                            createdAt = initialItem?.createdAt ?: System.currentTimeMillis(),
-                            dueAt = dueAt,
-                            category = category.trim(),
-                            priority = priority,
-                            reminderMinutesBefore = reminderMinutesBefore,
-                            isPinned = isPinned,
-                            recurrence = recurrence.name,
-                            subtasks = subtasks.toList(),
-                            recurrenceNextId = initialItem?.recurrenceNextId,
-                            linkedNoteId = initialItem?.linkedNoteId,
-                            completedAt = initialItem?.completedAt,
-                            plannedAt = initialItem?.plannedAt,
-                            focusDate = initialItem?.focusDate,
-                            reviewHiddenUntil = null
-                        )
-                    )
-                }
+                onClick = { persist() }
             ) {
                 Text("保存")
             }
@@ -1800,7 +1905,15 @@ internal fun TodoEditorScreen(
                 label = { Text("任务内容") },
                 singleLine = false,
                 minLines = 1,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(titleFocus),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        if (text.isNotBlank() && !invalidDueTime) persist()
+                    }
+                )
             )
 
             EditorSection("分类与优先级") {

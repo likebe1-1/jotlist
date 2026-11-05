@@ -105,8 +105,10 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 } else {
+                    val snackbarHostState = remember { SnackbarHostState() }
                     Scaffold(
                     modifier = Modifier.fillMaxSize(),
+                    snackbarHost = { SnackbarHost(snackbarHostState) },
                     bottomBar = {
                         if (!noteEditorVisible) {
                             // 底栏背景要一并覆盖到系统导航条区域，否则会出现一条白边。
@@ -156,6 +158,7 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.padding(innerPadding),
                                 appearanceMode = appearanceMode,
                                 density = uiDensity,
+                                snackbarHostState = snackbarHostState,
                                 initialOpenAddTodo = pendingOpenAddTodo,
                                 onInitialAddTodoConsumed = { pendingOpenAddTodo = false },
                                 initialFocusTodoId = requestedTodoId,
