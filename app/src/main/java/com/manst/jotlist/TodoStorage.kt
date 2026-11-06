@@ -177,8 +177,10 @@ internal fun loadTodoList(context: Context): TodoListLoadResult {
                     else obj.optLong("dueAt").saneTimestamp(),
                     category = obj.optString("category", ""),
                     priority = obj.optInt("priority", 1).coerceIn(0, 2),
+                    // -1 是编辑器里「关闭提醒」的哨兵值，不能按 0..60 夹掉，
+                    // 否则重新加载后「关闭」会悄悄变回「到期时提醒」。
                     reminderMinutesBefore = obj.optInt("reminderMinutesBefore", 0)
-                        .coerceIn(0, 60),
+                        .coerceIn(-1, 60),
                     isPinned = obj.optBoolean("isPinned", false),
                     recurrence = Recurrence.entries
                         .firstOrNull { it.name == obj.optString("recurrence") }?.name ?: "NONE",

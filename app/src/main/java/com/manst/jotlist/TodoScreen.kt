@@ -178,7 +178,11 @@ internal fun TodoAppScreen(
         pendingReminder = null
     }
     val requestExactReminder: (TodoItem) -> Unit = { item ->
-        if (scheduleReminder(context, item)) {
+        if (item.reminderMinutesBefore < 0) {
+            // 用户明确关闭了提醒：既不用排闹钟，也不该弹「允许精准提醒」。
+            pendingReminder = null
+            exactAlarmWarning = false
+        } else if (scheduleReminder(context, item)) {
             exactAlarmsAllowed = true
             exactAlarmWarning = false
         } else {
@@ -228,7 +232,8 @@ internal fun TodoAppScreen(
                     ?.items?.associate { it.id to it.title }.orEmpty()
                 result.items.filter { !it.isDone }.forEach { scheduleReminder(context, it) }
                 exactAlarmWarning = result.items.any {
-                    !it.isDone && it.dueAt?.let { dueAt -> dueAt > System.currentTimeMillis() } == true
+                    !it.isDone && it.reminderMinutesBefore >= 0 &&
+                        it.dueAt?.let { dueAt -> dueAt > System.currentTimeMillis() } == true
                 } && !exactAlarmsAllowed
                 isReady = true
                 mayPersist = true
@@ -434,7 +439,8 @@ internal fun TodoAppScreen(
                     todoList.add(edited)
                     edited
                 }
-                if (saved.dueAt != null && !saved.isDone) {
+                // 提醒被关闭（-1）时不需要再申请通知/精准闹钟权限，也不该弹授权提示。
+                if (saved.dueAt != null && !saved.isDone && saved.reminderMinutesBefore >= 0) {
                     if (
                         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                         ContextCompat.checkSelfPermission(
