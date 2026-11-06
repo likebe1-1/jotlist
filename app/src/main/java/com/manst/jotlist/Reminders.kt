@@ -86,6 +86,8 @@ internal fun reminderPendingIntent(context: Context, item: TodoItem): PendingInt
 
 internal fun scheduleReminder(context: Context, item: TodoItem): Boolean {
     val dueAt = item.dueAt ?: return false
+    // 负值表示用户在编辑器里选了「关闭提醒」
+    if (item.reminderMinutesBefore < 0) return false
     if (item.isDone || dueAt <= System.currentTimeMillis()) return false
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     val rawReminderAt = (dueAt - item.reminderMinutesBefore * 60_000L)
@@ -128,6 +130,7 @@ internal fun cancelReminder(context: Context, item: TodoItem) {
  */
 internal fun scheduleResetReminder(context: Context, item: TodoItem) {
     val resetAt = item.resetAt ?: return
+    if (item.reminderMinutesBefore < 0) return
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     val dnd = readDoNotDisturb(context)
     val raw = (resetAt - item.reminderMinutesBefore * 60_000L)

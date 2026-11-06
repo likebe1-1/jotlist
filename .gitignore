@@ -26,3 +26,6 @@ keystore.properties
 
 # 本地调试截图
 .dsh-notify-test/
+
+# 本地 DSH 插件实验目录
+dsh-plugins/

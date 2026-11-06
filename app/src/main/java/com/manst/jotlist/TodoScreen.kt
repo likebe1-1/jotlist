@@ -17,7 +17,17 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.text.KeyboardActions
@@ -102,6 +112,24 @@ internal fun TodoAppScreen(
     }
 
     val todoList = remember { mutableStateListOf<TodoItem>() }
+
+    /** 删除不再弹确认框：先删掉，再给几秒撤销窗口。 */
+    val deleteWithUndo: (TodoItem) -> Unit = { item ->
+        val index = todoList.indexOfFirst { it.id == item.id }
+        if (index >= 0) {
+            cancelReminder(context, item)
+            todoList.removeAt(index)
+            offerUndo("已删除「${item.text}」") {
+                todoList.add(index.coerceIn(0, todoList.size), item)
+                // 删除时撤掉了提醒，撤销删除要把提醒排回去。
+                if (item.isDone) {
+                    item.resetAt?.let { scheduleResetReminder(context, item) }
+                } else {
+                    scheduleReminder(context, item)
+                }
+            }
+        }
+    }
     val todoListState = rememberLazyListState()
     var pendingDelete by remember { mutableStateOf<TodoItem?>(null) }
     var showClearConfirm by remember { mutableStateOf(false) }
@@ -424,7 +452,18 @@ internal fun TodoAppScreen(
                 }
                 isCreatingTask = false
                 editorTarget = null
-            }
+            },
+            onDelete = editorTarget?.let { target ->
+                {
+                    isCreatingTask = false
+                    editorTarget = null
+                    deleteWithUndo(target)
+                }
+            },
+            knownCategories = todoList.map { it.category.trim() }
+                .filter { it.isNotEmpty() }
+                .distinct()
+                .sorted()
         )
         return
     }
@@ -700,23 +739,6 @@ internal fun TodoAppScreen(
                 }
                 // 恢复原提醒，并撤掉为重复任务排的「下次自动恢复」闹钟。
                 cancelReminderForId(context, item.id)
-                scheduleReminder(context, item)
-            }
-        }
-    }
-
-    /** 删除不再弹确认框：先删掉，再给 3 秒撤销窗口。 */
-    fun deleteWithUndo(item: TodoItem) {
-        val index = todoList.indexOfFirst { it.id == item.id }
-        if (index < 0) return
-        cancelReminder(context, item)
-        todoList.removeAt(index)
-        offerUndo("已删除「${item.text}」") {
-            todoList.add(index.coerceIn(0, todoList.size), item)
-            // 删除时撤掉了提醒，撤销删除要把提醒排回去。
-            if (item.isDone) {
-                item.resetAt?.let { scheduleResetReminder(context, item) }
-            } else {
                 scheduleReminder(context, item)
             }
         }
@@ -1775,7 +1797,9 @@ internal fun TodoEditorScreen(
     modifier: Modifier = Modifier,
     initialItem: TodoItem?,
     onDismiss: () -> Unit,
-    onSave: (TodoItem) -> Unit
+    onSave: (TodoItem) -> Unit,
+    onDelete: (() -> Unit)? = null,
+    knownCategories: List<String> = emptyList()
 ) {
     // 草稿只活在本次编辑会话里，避免进程重建后把旧草稿塞回另一个任务。
     var text by remember(initialItem?.id) {
@@ -1806,9 +1830,13 @@ internal fun TodoEditorScreen(
         mutableStateListOf<TodoSubtask>().apply { addAll(initialItem?.subtasks.orEmpty()) }
     }
     var newSubtaskText by remember(initialItem?.id) { mutableStateOf("") }
-    var priorityMenuExpanded by remember { mutableStateOf(false) }
     var recurrenceMenuExpanded by remember { mutableStateOf(false) }
     var reminderMenuExpanded by remember { mutableStateOf(false) }
+    var categoryMenuExpanded by remember { mutableStateOf(false) }
+    var showCategoryDialog by remember { mutableStateOf(false) }
+    var categoryDraft by remember { mutableStateOf("") }
+    // 保存被拦下时给一句人话，而不是让按钮默默灰掉
+    var hintMessage by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val priorityLabels = listOf("低", "中", "高")
     val dueAt = dueAtMillis.takeIf { it > 0L }
@@ -1868,6 +1896,20 @@ internal fun TodoEditorScreen(
         )
     }
 
+    fun attemptSave() {
+        if (text.isBlank()) {
+            hintMessage = "先写点什么，再保存"
+            titleFocus.requestFocus()
+            return
+        }
+        if (invalidDueTime) {
+            hintMessage = "截止时间早于现在，请重新选择"
+            return
+        }
+        hintMessage = null
+        persist()
+    }
+
     if (showDiscardConfirm) {
         AlertDialog(
             onDismissRequest = { showDiscardConfirm = false },
@@ -1890,27 +1932,68 @@ internal fun TodoEditorScreen(
         )
     }
 
+    if (showCategoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showCategoryDialog = false },
+            title = { Text("新建分类") },
+            text = {
+                OutlinedTextField(
+                    value = categoryDraft,
+                    onValueChange = { categoryDraft = it },
+                    singleLine = true,
+                    label = { Text("分类名称") }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = categoryDraft.isNotBlank(),
+                    onClick = {
+                        category = categoryDraft.trim()
+                        showCategoryDialog = false
+                    }
+                ) { Text("创建") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCategoryDialog = false }) { Text("取消") }
+            }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .imePadding()
             .padding(horizontal = 20.dp)
     ) {
-        // 顶部操作栏固定，字段再多也不用滚上来才能保存。
+        // 顶栏：返回 + 标题 + 主操作（保存不再和取消同级）
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(onClick = { attemptDismiss() }) { Text("取消") }
+            IconButton(onClick = { attemptDismiss() }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "返回"
+                )
+            }
             Text(
                 text = if (initialItem == null) "新建任务" else "编辑任务",
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 4.dp)
             )
-            TextButton(
-                enabled = text.isNotBlank() && !invalidDueTime,
-                modifier = Modifier.testTag("save_task"),
-                onClick = { persist() }
+            FilledTonalButton(
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                onClick = { attemptSave() },
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                modifier = Modifier.testTag("save_task")
             ) {
                 Text("保存")
             }
@@ -1919,174 +2002,274 @@ internal fun TodoEditorScreen(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            OutlinedTextField(
+            // 页面唯一的大字号元素：无边框、18sp/26sp，内容优先
+            BasicTextField(
                 value = text,
-                onValueChange = { text = it },
-                label = { Text("任务内容") },
-                // 单行才能让软键盘把回车当成 ImeAction.Done（下面的 onDone 直接保存）；
-                // 多行输入框的回车永远是换行，IME 完成键不会触发保存。
+                onValueChange = {
+                    text = it
+                    if (hintMessage != null) hintMessage = null
+                },
+                textStyle = MaterialTheme.typography.titleMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 18.sp,
+                    lineHeight = 26.sp
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { attemptSave() }),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(titleFocus),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        if (text.isNotBlank() && !invalidDueTime) persist()
+                    .focusRequester(titleFocus)
+                    .testTag("task_text_input"),
+                decorationBox = { innerTextField ->
+                    Box {
+                        if (text.isEmpty()) {
+                            Text(
+                                text = "写下一件要做的事…",
+                                style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                        innerTextField()
                     }
+                }
+            )
+            hintMessage?.let { message ->
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 6.dp)
                 )
+            }
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
             )
 
-            EditorSection("分类与优先级") {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            // 分类：已有分类点选，避免手打重复
+            Box {
+                EditorFieldRow(
+                    icon = Icons.Default.Label,
+                    label = "分类",
+                    value = category.ifBlank { "未分类" },
+                    filled = category.isNotBlank(),
+                    onClick = { categoryMenuExpanded = true }
+                )
+                DropdownMenu(
+                    expanded = categoryMenuExpanded,
+                    onDismissRequest = { categoryMenuExpanded = false }
                 ) {
-                    OutlinedTextField(
-                        value = category,
-                        onValueChange = { category = it },
-                        label = { Text("分类（可选）") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Box {
-                        OutlinedButton(onClick = { priorityMenuExpanded = true }) {
-                            Text("优先级 · ${priorityLabels[priority.coerceIn(0, 2)]}")
-                        }
-                        DropdownMenu(
-                            expanded = priorityMenuExpanded,
-                            onDismissRequest = { priorityMenuExpanded = false }
-                        ) {
-                            priorityLabels.forEachIndexed { index, label ->
-                                DropdownMenuItem(
-                                    text = { Text(label) },
-                                    onClick = {
-                                        priority = index
-                                        priorityMenuExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            EditorSection("时间与提醒") {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
+                    DropdownMenuItem(
+                        text = { Text("未分类") },
                         onClick = {
-                            DatePickerDialog(
-                                context,
-                                { _, year, month, day ->
-                                    val updated = Calendar.getInstance().apply {
-                                        timeInMillis = dueAt ?: System.currentTimeMillis()
-                                        set(Calendar.YEAR, year)
-                                        set(Calendar.MONTH, month)
-                                        set(Calendar.DAY_OF_MONTH, day)
-                                    }
-                                    dueAtMillis = updated.timeInMillis
-                                },
-                                calendar.get(Calendar.YEAR),
-                                calendar.get(Calendar.MONTH),
-                                calendar.get(Calendar.DAY_OF_MONTH)
-                            ).show()
-                        }
-                    ) {
-                        Text(dueAt?.let(::formatReminderDate) ?: "选择日期")
-                    }
-                    OutlinedButton(
-                        onClick = {
-                            val selected = Calendar.getInstance().apply {
-                                timeInMillis = dueAt ?: System.currentTimeMillis()
-                            }
-                            TimePickerDialog(
-                                context,
-                                { _, hour, minute ->
-                                    selected.set(Calendar.HOUR_OF_DAY, hour)
-                                    selected.set(Calendar.MINUTE, minute)
-                                    selected.set(Calendar.SECOND, 0)
-                                    selected.set(Calendar.MILLISECOND, 0)
-                                    dueAtMillis = selected.timeInMillis
-                                },
-                                selected.get(Calendar.HOUR_OF_DAY),
-                                selected.get(Calendar.MINUTE),
-                                true
-                            ).show()
+                            category = ""
+                            categoryMenuExpanded = false
                         },
-                        modifier = Modifier.testTag("reminder_time")
-                    ) {
-                        Text(dueAt?.let(::formatTime) ?: "选择时间")
+                        trailingIcon = { if (category.isBlank()) Text("✓") }
+                    )
+                    knownCategories.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                category = option
+                                categoryMenuExpanded = false
+                            },
+                            trailingIcon = { if (category == option) Text("✓") }
+                        )
                     }
-                }
-                if (dueAt != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box {
-                            OutlinedButton(onClick = { reminderMenuExpanded = true }) {
-                                Text(
-                                    if (reminderMinutesBefore == 0) {
-                                        "到期时提醒"
-                                    } else {
-                                        "提前 $reminderMinutesBefore 分钟"
-                                    }
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = reminderMenuExpanded,
-                                onDismissRequest = { reminderMenuExpanded = false }
-                            ) {
-                                listOf(0, 5, 10, 30, 60).forEach { minutes ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                if (minutes == 0) {
-                                                    "到期时"
-                                                } else {
-                                                    "提前 $minutes 分钟"
-                                                }
-                                            )
-                                        },
-                                        onClick = {
-                                            reminderMinutesBefore = minutes
-                                            reminderMenuExpanded = false
-                                        }
-                                    )
-                                }
-                            }
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text("新建分类…") },
+                        onClick = {
+                            categoryDraft = category
+                            categoryMenuExpanded = false
+                            showCategoryDialog = true
                         }
-                        TextButton(onClick = { dueAtMillis = 0L }) { Text("清除") }
-                    }
-                }
-                if (invalidDueTime) {
-                    Text(
-                        text = "截止时间必须晚于当前时间。",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
 
-            EditorSection("重复") {
-                Box {
-                    OutlinedButton(onClick = { recurrenceMenuExpanded = true }) {
-                        Text("重复：${recurrence.label}")
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+            // 优先级：三段按钮，色点与列表左侧色条同源
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 52.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "优先级",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.width(12.dp))
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.weight(1f)) {
+                    priorityLabels.forEachIndexed { index, label ->
+                        SegmentedButton(
+                            selected = priority == index,
+                            onClick = { priority = index },
+                            shape = SegmentedButtonDefaults.itemShape(index, priorityLabels.size),
+                            colors = SegmentedButtonDefaults.colors(
+                                activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            when (index) {
+                                                0 -> PriorityStripeLow
+                                                1 -> PriorityStripeMedium
+                                                else -> PriorityStripeHigh
+                                            }
+                                        )
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(label, style = MaterialTheme.typography.labelLarge)
+                            }
+                        }
                     }
+                }
+            }
+
+            // 截止：一行字段 + 快捷项，避免"选日期→再选时间"两步走
+            Box {
+                EditorFieldRow(
+                    icon = Icons.Default.Schedule,
+                    label = "截止",
+                    value = dueAt?.let { "${formatReminderDate(it)} ${formatTime(it)}" } ?: "未设置",
+                    filled = dueAt != null,
+                    onClick = {
+                        DatePickerDialog(
+                            context,
+                            { _, year, month, day ->
+                                val updated = Calendar.getInstance().apply {
+                                    timeInMillis = dueAt ?: System.currentTimeMillis()
+                                    set(Calendar.YEAR, year)
+                                    set(Calendar.MONTH, month)
+                                    set(Calendar.DAY_OF_MONTH, day)
+                                    if (dueAt == null) {
+                                        // 只选日期时默认 09:00，避免沿用"现在"导致立刻逾期
+                                        set(Calendar.HOUR_OF_DAY, 9)
+                                        set(Calendar.MINUTE, 0)
+                                    }
+                                    set(Calendar.SECOND, 0)
+                                    set(Calendar.MILLISECOND, 0)
+                                }
+                                dueAtMillis = if (updated.timeInMillis <= System.currentTimeMillis()) {
+                                    nextWholeHour().timeInMillis
+                                } else {
+                                    updated.timeInMillis
+                                }
+                            },
+                            calendar.get(Calendar.YEAR),
+                            calendar.get(Calendar.MONTH),
+                            calendar.get(Calendar.DAY_OF_MONTH)
+                        ).show()
+                    }
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(
+                    "今天 18:00" to quickTodayEvening(),
+                    "明天 9:00" to quickTomorrowMorning(),
+                    "下周一 9:00" to quickNextMonday()
+                ).forEach { (label, value) ->
+                    AssistChip(
+                        onClick = { dueAtMillis = value },
+                        label = { Text(label, style = MaterialTheme.typography.labelMedium) }
+                    )
+                }
+                AssistChip(
+                    onClick = {
+                        val base = Calendar.getInstance().apply {
+                            timeInMillis = dueAt ?: System.currentTimeMillis()
+                        }
+                        TimePickerDialog(
+                            context,
+                            { _, hour, minute ->
+                                val picked = Calendar.getInstance().apply {
+                                    timeInMillis = dueAt ?: System.currentTimeMillis()
+                                    set(Calendar.HOUR_OF_DAY, hour)
+                                    set(Calendar.MINUTE, minute)
+                                    set(Calendar.SECOND, 0)
+                                    set(Calendar.MILLISECOND, 0)
+                                }
+                                dueAtMillis = if (picked.timeInMillis <= System.currentTimeMillis()) {
+                                    nextWholeHour().timeInMillis
+                                } else {
+                                    picked.timeInMillis
+                                }
+                            },
+                            base.get(Calendar.HOUR_OF_DAY),
+                            base.get(Calendar.MINUTE),
+                            true
+                        ).show()
+                    },
+                    label = { Text("自定义时间", style = MaterialTheme.typography.labelMedium) }
+                )
+                if (dueAt != null) {
+                    AssistChip(
+                        onClick = { dueAtMillis = 0L },
+                        modifier = Modifier.testTag("clear_due"),
+                        label = { Text("清除", style = MaterialTheme.typography.labelMedium) }
+                    )
+                }
+            }
+            if (invalidDueTime) {
+                Text(
+                    text = "截止时间必须晚于当前时间。",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+            }
+
+            // 提醒：只有设了截止时间才出现；支持关闭
+            if (dueAt != null) {
+                Box {
+                    EditorFieldRow(
+                        icon = Icons.Default.Notifications,
+                        label = "提醒",
+                        value = when {
+                            reminderMinutesBefore < 0 -> "关闭"
+                            reminderMinutesBefore == 0 -> "到期时"
+                            else -> "提前 $reminderMinutesBefore 分钟"
+                        },
+                        filled = reminderMinutesBefore >= 0,
+                        onClick = { reminderMenuExpanded = true }
+                    )
                     DropdownMenu(
-                        expanded = recurrenceMenuExpanded,
-                        onDismissRequest = { recurrenceMenuExpanded = false }
+                        expanded = reminderMenuExpanded,
+                        onDismissRequest = { reminderMenuExpanded = false }
                     ) {
-                        Recurrence.entries.forEach { option ->
+                        listOf(
+                            -1 to "关闭",
+                            0 to "准时",
+                            5 to "提前 5 分钟",
+                            10 to "提前 10 分钟",
+                            30 to "提前 30 分钟",
+                            60 to "提前 1 小时"
+                        ).forEach { (minutes, label) ->
                             DropdownMenuItem(
-                                text = { Text(option.label) },
+                                text = { Text(label) },
                                 onClick = {
-                                    recurrence = option
-                                    recurrenceMenuExpanded = false
+                                    reminderMinutesBefore = minutes
+                                    reminderMenuExpanded = false
+                                },
+                                trailingIcon = {
+                                    if (reminderMinutesBefore == minutes) Text("✓")
                                 }
                             )
                         }
@@ -2094,61 +2277,155 @@ internal fun TodoEditorScreen(
                 }
             }
 
-            EditorSection("子任务") {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = newSubtaskText,
-                        onValueChange = { newSubtaskText = it },
-                        label = { Text("添加步骤") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                    TextButton(
-                        enabled = newSubtaskText.isNotBlank(),
-                        onClick = {
-                            subtasks.add(TodoSubtask(text = newSubtaskText.trim()))
-                            newSubtaskText = ""
-                        }
-                    ) {
-                        Text("添加")
-                    }
-                }
-                subtasks.forEachIndexed { index, subtask ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = subtask.isDone,
-                            onCheckedChange = { checked ->
-                                subtasks[index] = subtask.copy(isDone = checked)
-                            }
+            Box {
+                EditorFieldRow(
+                    icon = Icons.Default.Repeat,
+                    label = "重复",
+                    value = recurrence.label,
+                    filled = recurrence != Recurrence.NONE,
+                    onClick = { recurrenceMenuExpanded = true }
+                )
+                DropdownMenu(
+                    expanded = recurrenceMenuExpanded,
+                    onDismissRequest = { recurrenceMenuExpanded = false }
+                ) {
+                    Recurrence.entries.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option.label) },
+                            onClick = {
+                                recurrence = option
+                                recurrenceMenuExpanded = false
+                            },
+                            trailingIcon = { if (recurrence == option) Text("✓") }
                         )
-                        Text(
-                            text = subtask.text,
-                            modifier = Modifier.weight(1f),
-                            textDecoration = if (subtask.isDone) {
-                                TextDecoration.LineThrough
-                            } else {
-                                TextDecoration.None
-                            }
-                        )
-                        IconButton(onClick = { subtasks.removeAt(index) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "删除步骤")
-                        }
                     }
                 }
             }
 
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = "步骤 ${subtasks.count { it.isDone }}/${subtasks.size}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+            subtasks.forEachIndexed { index, subtask ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = subtask.isDone,
+                        onCheckedChange = { checked ->
+                            subtasks[index] = subtask.copy(isDone = checked)
+                        }
+                    )
+                    Text(
+                        text = subtask.text,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge,
+                        textDecoration = if (subtask.isDone) {
+                            TextDecoration.LineThrough
+                        } else {
+                            TextDecoration.None
+                        },
+                        color = if (subtask.isDone) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                    IconButton(onClick = { subtasks.removeAt(index) }) {
+                        Icon(Icons.Default.Delete, contentDescription = "删除步骤")
+                    }
+                }
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(min = 48.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+                BasicTextField(
+                    value = newSubtaskText,
+                    onValueChange = { newSubtaskText = it },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (newSubtaskText.isNotBlank()) {
+                                subtasks.add(TodoSubtask(text = newSubtaskText.trim()))
+                                newSubtaskText = ""
+                            }
+                        }
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp)
+                        .testTag("subtask_input"),
+                    decorationBox = { innerTextField ->
+                        Box {
+                            if (newSubtaskText.isEmpty()) {
+                                Text(
+                                    text = "添加步骤，回车即添加",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                            }
+                            innerTextField()
+                        }
+                    }
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
                     .clickable { isPinned = !isPinned },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Checkbox(
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("置顶", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = "在列表中靠前显示",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
                     checked = isPinned,
                     onCheckedChange = { isPinned = it },
                     modifier = Modifier.testTag("pin_task")
                 )
-                Text("置顶任务", style = MaterialTheme.typography.bodyLarge)
+            }
+
+            if (initialItem != null && onDelete != null) {
+                TextButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .testTag("delete_task")
+                ) { Text("删除任务") }
             }
 
             Spacer(Modifier.height(24.dp))
@@ -2322,4 +2599,94 @@ fun TodoPreview() {
     MyApplicationTheme {
         TodoAppScreen()
     }
+}
+
+/** 编辑器里的一行属性：图标 + 标签 + 右值 + chevron，有值时图标用主色。 */
+@Composable
+private fun EditorFieldRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String,
+    filled: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
+            .clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (filled) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            modifier = Modifier.size(18.dp)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 12.dp)
+        )
+        Spacer(Modifier.weight(1f))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (filled) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 12.dp)
+        )
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
+/** 今天 18:00，已过则顺延到明天同一时刻。 */
+private fun quickTodayEvening(): Long = Calendar.getInstance().apply {
+    set(Calendar.HOUR_OF_DAY, 18)
+    set(Calendar.MINUTE, 0)
+    set(Calendar.SECOND, 0)
+    set(Calendar.MILLISECOND, 0)
+    if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_MONTH, 1)
+}.timeInMillis
+
+/** 明天 09:00。 */
+private fun quickTomorrowMorning(): Long = Calendar.getInstance().apply {
+    add(Calendar.DAY_OF_MONTH, 1)
+    set(Calendar.HOUR_OF_DAY, 9)
+    set(Calendar.MINUTE, 0)
+    set(Calendar.SECOND, 0)
+    set(Calendar.MILLISECOND, 0)
+}.timeInMillis
+
+/** 下周一 09:00（今天是周一则取 7 天后）。 */
+private fun quickNextMonday(): Long = Calendar.getInstance().apply {
+    val delta = (Calendar.MONDAY - get(Calendar.DAY_OF_WEEK) + 7) % 7
+    add(Calendar.DAY_OF_MONTH, if (delta == 0) 7 else delta)
+    set(Calendar.HOUR_OF_DAY, 9)
+    set(Calendar.MINUTE, 0)
+    set(Calendar.SECOND, 0)
+    set(Calendar.MILLISECOND, 0)
+}.timeInMillis
+
+/** 下一个整点：只选日期但时间已过时兜底，避免存进去就是逾期。 */
+private fun nextWholeHour(): Calendar = Calendar.getInstance().apply {
+    add(Calendar.HOUR_OF_DAY, 1)
+    set(Calendar.MINUTE, 0)
+    set(Calendar.SECOND, 0)
+    set(Calendar.MILLISECOND, 0)
 }
