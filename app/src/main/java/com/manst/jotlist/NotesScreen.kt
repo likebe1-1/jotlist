@@ -30,6 +30,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextDecoration
@@ -654,8 +660,8 @@ internal fun NoteEditorScreen(
         mutableStateOf(initialNote?.isMarkdown ?: false)
     }
     var markdownPreviewVisible by remember(initialNote?.id) { mutableStateOf(false) }
-    var tagsText by remember(initialNote?.id) {
-        mutableStateOf(initialNote?.tags.orEmpty().joinToString(", "))
+    val tags = remember(initialNote?.id) {
+        mutableStateListOf<String>().apply { addAll(initialNote?.tags.orEmpty()) }
     }
     val embeddedTodos = remember(initialNote?.id) {
         mutableStateListOf<NoteInlineTodo>().apply {
@@ -668,224 +674,389 @@ internal fun NoteEditorScreen(
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
+    // —— 编辑态保护：返回不再直接丢内容 ——
+    val dirty = if (initialNote == null) {
+        title.isNotBlank() || body.isNotBlank() || tags.isNotEmpty() || embeddedTodos.isNotEmpty()
+    } else {
+        title != initialNote.title ||
+            body != initialNote.body ||
+            tags.toList() != initialNote.tags ||
+            embeddedTodos.toList() != initialNote.embeddedTodos ||
+            isMarkdown != initialNote.isMarkdown
+    }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
+    var showTagDialog by remember { mutableStateOf(false) }
+    var tagDraft by remember { mutableStateOf("") }
+    var hintMessage by remember { mutableStateOf<String?>(null) }
+
+    fun attemptDismiss() {
+        if (dirty) showDiscardConfirm = true else onDismiss()
+    }
+
+    BackHandler { attemptDismiss() }
+
+    // 新建笔记直接聚焦标题；标题回车跳到正文
+    val titleFocus = remember { FocusRequester() }
+    val bodyFocus = remember { FocusRequester() }
+    LaunchedEffect(initialNote?.id) {
+        if (initialNote == null) titleFocus.requestFocus()
+    }
+
+    fun saveNote() {
+        val trimmedBody = body.trim()
+        val resolvedTitle = title.trim().ifBlank {
+            trimmedBody.lineSequence().firstOrNull()?.trim()?.take(36).orEmpty()
+        }
+        if (resolvedTitle.isBlank() && trimmedBody.isBlank()) {
+            hintMessage = "写点什么再保存"
+            titleFocus.requestFocus()
+            return
+        }
+        onSave(
+            NoteItem(
+                id = initialNote?.id ?: nextTodoId(),
+                title = resolvedTitle.ifBlank { "无标题笔记" },
+                body = trimmedBody,
+                updatedAt = System.currentTimeMillis(),
+                createdAt = initialNote?.createdAt ?: System.currentTimeMillis(),
+                isMarkdown = isMarkdown,
+                tags = tags.distinct(),
+                embeddedTodos = embeddedTodos.filter { it.text.isNotBlank() }
+            )
+        )
+    }
+
+    if (showDiscardConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = { Text("放弃这次编辑？") },
+            text = { Text("这篇笔记还没保存，离开后修改会丢失。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDiscardConfirm = false
+                        onDismiss()
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) { Text("放弃") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardConfirm = false }) { Text("继续编辑") }
+            }
+        )
+    }
+
+    if (showTagDialog) {
+        AlertDialog(
+            onDismissRequest = { showTagDialog = false },
+            title = { Text("添加标签") },
+            text = {
+                OutlinedTextField(
+                    value = tagDraft,
+                    onValueChange = { tagDraft = it },
+                    singleLine = true,
+                    label = { Text("标签名称") }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = tagDraft.isNotBlank(),
+                    onClick = {
+                        val clean = tagDraft.trim().trimStart('#')
+                        if (clean.isNotEmpty() && clean !in tags) tags.add(clean)
+                        tagDraft = ""
+                        showTagDialog = false
+                    }
+                ) { Text("添加") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTagDialog = false }) { Text("取消") }
+            }
+        )
+    }
+
+    if (showFormatHelp) {
+        AlertDialog(
+            onDismissRequest = {
+                showFormatHelp = false
+                preferences.edit().putBoolean(KEY_NOTE_FORMAT_HELP_SHOWN, true).apply()
+            },
+            title = { Text("用工具轻松排版") },
+            text = {
+                Text("底部工具条：H 插入标题、B 加粗、• 列表、☑ 插入待办。选中文字后点 B 可直接套用加粗。")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showFormatHelp = false
+                        preferences.edit().putBoolean(KEY_NOTE_FORMAT_HELP_SHOWN, true).apply()
+                    }
+                ) { Text("知道了") }
+            }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
+            .imePadding()
             .padding(horizontal = 20.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
+        // 顶栏固定：返回 + 标题 + 主操作
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            IconButton(onClick = { attemptDismiss() }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "返回"
+                )
+            }
             Text(
                 text = if (initialNote == null) "新建笔记" else "编辑笔记",
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 4.dp)
             )
-            TextButton(
-                onClick = {
-                    onSave(
-                        NoteItem(
-                            id = initialNote?.id ?: nextTodoId(),
-                            title = title.trim().ifEmpty { "无标题笔记" },
-                            body = body.trim(),
-                            updatedAt = System.currentTimeMillis(),
-                            createdAt = initialNote?.createdAt ?: System.currentTimeMillis(),
-                            isMarkdown = isMarkdown,
-                            tags = tagsText.split(",", "，")
-                                .map(String::trim)
-                                .filter(String::isNotEmpty)
-                                .distinct(),
-                            embeddedTodos = embeddedTodos.filter { it.text.isNotBlank() }
-                        )
-                    )
-                },
+            FilledTonalButton(
+                onClick = { saveNote() },
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                 modifier = Modifier.testTag("save_note")
             ) {
                 Text("保存")
             }
         }
-        BasicTextField(
-            value = title,
-            onValueChange = { title = it },
+
+        // 中间可滚动区域：标题、标签、正文、内嵌待办
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .testTag("note_title_editor"),
-            textStyle = MaterialTheme.typography.headlineMedium.copy(
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            ),
-            singleLine = true,
-            decorationBox = { innerTextField ->
-                Box {
-                    if (title.isBlank()) {
-                        Text(
-                            "标题",
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                        )
-                    }
-                    innerTextField()
-                }
-            }
-        )
-        OutlinedTextField(
-            value = tagsText,
-            onValueChange = { tagsText = it },
-            label = { Text("标签（逗号分隔）") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-        if (!isMarkdown) {
-            NoteBodyEditor(
-                value = bodyField,
-                onValueChange = { bodyField = it },
-                isMarkdown = false,
-                onAddTodo = { embeddedTodos.add(NoteInlineTodo(text = "")) }
-            )
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
-                checked = isMarkdown,
-                onCheckedChange = {
-                    isMarkdown = it
-                    if (!it) markdownPreviewVisible = false
-                    if (it && !preferences.getBoolean(KEY_NOTE_FORMAT_HELP_SHOWN, false)) {
-                        showFormatHelp = true
-                    }
-                },
-                modifier = Modifier.testTag("markdown_note_toggle")
-            )
-            Column {
-                Text("使用排版")
-                Text(
-                    "添加标题、加粗、列表等格式。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        TextButton(
-            onClick = { showFormatHelp = true },
-            modifier = Modifier.testTag("note_format_help")
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
         ) {
-            Text("排版说明")
-        }
-        if (isMarkdown) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                FilterChip(
-                    selected = !markdownPreviewVisible,
-                    onClick = { markdownPreviewVisible = false },
-                    label = { Text("编辑") },
-                    modifier = Modifier.testTag("markdown_edit_mode")
-                )
-                Spacer(Modifier.width(8.dp))
-                FilterChip(
-                    selected = markdownPreviewVisible,
-                    onClick = { markdownPreviewVisible = true },
-                    label = { Text("预览") },
-                    modifier = Modifier.testTag("markdown_preview_mode")
-                )
-            }
-            AnimatedContent(
-                targetState = markdownPreviewVisible,
-                transitionSpec = {
-                    fadeIn(tween(180)) togetherWith fadeOut(tween(120))
+            BasicTextField(
+                value = title,
+                onValueChange = {
+                    title = it
+                    if (hintMessage != null) hintMessage = null
                 },
-                label = "markdown_editor_preview"
-            ) { preview ->
-                if (preview) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .animateContentSize(),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        if (body.isBlank()) {
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(titleFocus)
+                    .testTag("note_title_editor"),
+                textStyle = MaterialTheme.typography.headlineMedium.copy(
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { bodyFocus.requestFocus() }),
+                decorationBox = { innerTextField ->
+                    Box {
+                        if (title.isBlank()) {
                             Text(
-                                "输入内容后会显示排版预览。",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        } else {
-                            MarkdownBody(
-                                markdown = body,
-                                modifier = Modifier.padding(16.dp)
+                                "标题",
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                             )
                         }
+                        innerTextField()
                     }
+                }
+            )
+            hintMessage?.let { message ->
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
+            if (initialNote != null) {
+                Text(
+                    text = "创建于 ${formatMonthDay(initialNote.createdAt)} · 更新于 ${formatMonthDay(initialNote.updatedAt)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                tags.forEach { tag ->
+                    InputChip(
+                        selected = false,
+                        onClick = { tags.remove(tag) },
+                        label = { Text("#$tag", style = MaterialTheme.typography.labelMedium) }
+                    )
+                }
+                AssistChip(
+                    onClick = { showTagDialog = true },
+                    modifier = Modifier.testTag("add_tag"),
+                    label = { Text("＋", style = MaterialTheme.typography.labelMedium) }
+                )
+            }
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+            if (markdownPreviewVisible) {
+                if (body.isBlank()) {
+                    Text(
+                        "输入内容后会显示排版预览。",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(vertical = 12.dp)
+                    )
                 } else {
-                    NoteBodyEditor(
-                        value = bodyField,
-                        onValueChange = { bodyField = it },
-                        isMarkdown = true,
-                        onAddTodo = { embeddedTodos.add(NoteInlineTodo(text = "")) }
+                    MarkdownBody(markdown = body, modifier = Modifier.padding(vertical = 8.dp))
+                }
+            } else {
+                BasicTextField(
+                    value = bodyField,
+                    onValueChange = { bodyField = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 240.dp)
+                        .focusRequester(bodyFocus)
+                        .testTag("note_body_editor"),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        lineHeight = 28.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    decorationBox = { innerTextField ->
+                        Box {
+                            if (body.isBlank()) {
+                                Text(
+                                    "在这里写下你的想法…",
+                                    style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 28.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            innerTextField()
+                        }
+                    }
+                )
+            }
+            // 内嵌待办：有内容才出现，不再单独占一块标题
+            embeddedTodos.forEachIndexed { index, todo ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 44.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = todo.isDone,
+                        onCheckedChange = { checked ->
+                            embeddedTodos[index] = todo.copy(isDone = checked)
+                        }
+                    )
+                    BasicTextField(
+                        value = todo.text,
+                        onValueChange = { text ->
+                            embeddedTodos[index] = todo.copy(text = text)
+                        },
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("note_todo_text_$index"),
+                        decorationBox = { innerTextField ->
+                            Box {
+                                if (todo.text.isEmpty()) {
+                                    Text(
+                                        "待办内容",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        }
+                    )
+                    IconButton(onClick = { embeddedTodos.removeAt(index) }) {
+                        Icon(Icons.Default.Delete, contentDescription = "删除笔记待办")
+                    }
+                }
+            }
+            Spacer(Modifier.height(32.dp))
+        }
+
+        // 吸底工具条：永远在键盘上方，不随正文滚走
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 52.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            listOf(
+                "H" to { bodyField = applyNoteFormat(bodyField, "# ") },
+                "B" to { bodyField = applyNoteFormat(bodyField, "**", "**") },
+                "•" to { bodyField = applyNoteFormat(bodyField, "- ") }
+            ).forEachIndexed { index, (label, action) ->
+                TextButton(
+                    onClick = {
+                        isMarkdown = true
+                        markdownPreviewVisible = false
+                        action()
+                    },
+                    modifier = Modifier.testTag("toolbar_$index")
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.titleMedium
                     )
                 }
             }
-        }
-        Text("笔记内待办", style = MaterialTheme.typography.titleMedium)
-        TextButton(
-            onClick = { embeddedTodos.add(NoteInlineTodo(text = "")) },
-            modifier = Modifier.testTag("add_note_todo")
-        ) {
-            Text("添加待办")
-        }
-        embeddedTodos.forEachIndexed { index, todo ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = todo.isDone,
-                    onCheckedChange = { checked ->
-                        embeddedTodos[index] = todo.copy(isDone = checked)
-                    }
-                )
-                OutlinedTextField(
-                    value = todo.text,
-                    onValueChange = { text ->
-                        embeddedTodos[index] = todo.copy(text = text)
-                    },
-                    label = { Text("待办内容") },
-                    singleLine = true,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("note_todo_text_$index")
-                )
-                IconButton(onClick = { embeddedTodos.removeAt(index) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "删除笔记待办")
-                }
+            TextButton(
+                onClick = {
+                    isMarkdown = true
+                    embeddedTodos.add(NoteInlineTodo(text = ""))
+                },
+                modifier = Modifier.testTag("toolbar_todo")
+            ) {
+                Icon(Icons.Default.CheckCircle, contentDescription = "插入待办")
             }
-        }
-        if (showFormatHelp) {
-            AlertDialog(
-                onDismissRequest = {
-                    showFormatHelp = false
-                    preferences.edit().putBoolean(KEY_NOTE_FORMAT_HELP_SHOWN, true).apply()
+            Spacer(Modifier.weight(1f))
+            TextButton(
+                onClick = {
+                    if (!markdownPreviewVisible && !isMarkdown) isMarkdown = true
+                    markdownPreviewVisible = !markdownPreviewVisible
                 },
-                title = { Text("用工具轻松排版") },
-                text = {
-                    Text("在正文工具栏点“标题”“加粗”或“列表”插入排版。选中一段文字后点“加粗”可直接套用；点“待办”会插入一个可勾选的待办控件。")
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showFormatHelp = false
-                            preferences.edit().putBoolean(KEY_NOTE_FORMAT_HELP_SHOWN, true).apply()
-                        }
-                    ) { Text("知道了") }
-                }
-            )
+                modifier = Modifier.testTag("markdown_preview_mode")
+            ) {
+                Text(if (markdownPreviewVisible) "编辑" else "预览")
+            }
+            IconButton(
+                onClick = { showFormatHelp = true },
+                modifier = Modifier.testTag("note_format_help")
+            ) {
+                Icon(Icons.Default.HelpOutline, contentDescription = "排版说明")
+            }
         }
     }
 }

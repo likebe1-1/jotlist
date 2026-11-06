@@ -29,3 +29,6 @@ keystore.properties
 
 # 本地 DSH 插件实验目录
 dsh-plugins/
+
+# DSH 本地生成的插件目录
+.dsh-created-plugins/
