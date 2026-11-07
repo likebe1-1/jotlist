@@ -933,7 +933,11 @@ internal fun NoteEditorScreen(
             } else {
                 BasicTextField(
                     value = bodyField,
-                    onValueChange = { bodyField = it },
+                    onValueChange = {
+                        bodyField = it
+                        // 正文一改动就清掉保存提示，避免提示挂在那儿不走
+                        if (hintMessage != null) hintMessage = null
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .defaultMinSize(minHeight = 240.dp)
