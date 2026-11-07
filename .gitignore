@@ -32,3 +32,6 @@ dsh-plugins/
 
 # DSH 本地生成的插件目录
 .dsh-created-plugins/
+
+# 临时解包目录
+.tmp-asar2/

@@ -89,6 +89,7 @@ internal fun SettingsScreen(
     var showTrash by remember { mutableStateOf(false) }
     var backupMessage by remember { mutableStateOf<String?>(null) }
     var lastBackup by remember { mutableStateOf(lastBackupAt(context)) }
+    var snapshotAt by remember { mutableStateOf(latestSnapshotAt(context)) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -342,6 +343,25 @@ internal fun SettingsScreen(
                 actionLabel = "选择文件",
                 actionTestTag = "settings_backup_restore",
                 onAction = { importLauncher.launch(arrayOf("application/json")) }
+            )
+            SettingsRow(
+                title = "从上一版恢复",
+                value = if (snapshotAt > 0) {
+                    "上次自动快照：${backupDateLabel(snapshotAt)}"
+                } else {
+                    "还没有快照（保存一次后自动生成）"
+                },
+                actionLabel = "回退",
+                actionTestTag = "settings_snapshot_restore",
+                onAction = {
+                    backupMessage = when (val outcome = restoreLatestSnapshot(context)) {
+                        is RestoreOutcome.Success ->
+                            "已回退到快照：${outcome.summary.todos} 条待办、${outcome.summary.notes} 篇笔记"
+                        is RestoreOutcome.Failed -> "回退失败：${outcome.message}"
+                    }
+                    snapshotAt = latestSnapshotAt(context)
+                    lastBackup = lastBackupAt(context)
+                }
             )
             backupMessage?.let { message ->
                 Text(

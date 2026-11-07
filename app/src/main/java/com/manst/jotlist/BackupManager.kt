@@ -127,3 +127,47 @@ internal fun markBackupExported(context: Context, at: Long = System.currentTimeM
 internal fun lastBackupAt(context: Context): Long =
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .getLong(KEY_LAST_BACKUP_AT, 0L)
+
+private const val SNAPSHOT_NEW = "snapshot-new.json"
+private const val SNAPSHOT_OLD = "snapshot-old.json"
+private const val KEY_SNAPSHOT_AT = "snapshot_written_at"
+
+/**
+ * 滚动快照：每次保存前把「当前（即将被覆盖）的状态」留一份信封。
+ * 轮转两份（new / old），并按 60 秒节流——笔记是逐字保存的，不能每次都写盘。
+ */
+internal fun writeRollingSnapshot(context: Context, force: Boolean = false) {
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    val now = System.currentTimeMillis()
+    val last = prefs.getLong(KEY_SNAPSHOT_AT, 0L)
+    if (!force && now - last < 60_000L) return
+    val payload = runCatching { buildBackupJson(context, "snapshot") }.getOrNull() ?: return
+    runCatching {
+        val dir = context.filesDir
+        val newFile = java.io.File(dir, SNAPSHOT_NEW)
+        if (newFile.exists()) {
+            newFile.copyTo(java.io.File(dir, SNAPSHOT_OLD), overwrite = true)
+        }
+        java.io.File(dir, SNAPSHOT_NEW).writeText(payload)
+        prefs.edit().putLong(KEY_SNAPSHOT_AT, now).apply()
+    }
+}
+
+/** 最近一份快照的写入时间（没有返回 0）。 */
+internal fun latestSnapshotAt(context: Context): Long =
+    listOf(SNAPSHOT_NEW, SNAPSHOT_OLD)
+        .map { java.io.File(context.filesDir, it) }
+        .filter { it.exists() }
+        .maxOfOrNull { it.lastModified() } ?: 0L
+
+/** 从最近一份快照恢复（同样是整体替换，走 restoreBackupJson）。 */
+internal fun restoreLatestSnapshot(context: Context): RestoreOutcome {
+    val file = listOf(SNAPSHOT_NEW, SNAPSHOT_OLD)
+        .map { java.io.File(context.filesDir, it) }
+        .filter { it.exists() }
+        .maxByOrNull { it.lastModified() }
+        ?: return RestoreOutcome.Failed("还没有可用的快照")
+    val raw = runCatching { file.readText() }.getOrNull()
+        ?: return RestoreOutcome.Failed("快照文件读取失败")
+    return restoreBackupJson(context, raw)
+}

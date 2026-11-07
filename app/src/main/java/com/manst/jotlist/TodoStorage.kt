@@ -186,6 +186,8 @@ internal fun todoFromJson(obj: JSONObject): TodoItem {
 }
 
 internal fun saveTodoList(context: Context, list: List<TodoItem>) {
+    // 覆盖前留一份上一版，误删/误改可回退
+    writeRollingSnapshot(context)
     val arr = JSONArray()
     list.forEach { item ->
         arr.put(todoToJson(item))
@@ -273,6 +275,7 @@ internal fun loadNotes(context: Context): NotesLoadResult {
 }
 
 internal fun saveNotes(context: Context, notes: List<NoteItem>) {
+    writeRollingSnapshot(context)
     val array = JSONArray()
     notes.forEach { note ->
         array.put(noteToJson(note))
