@@ -1901,7 +1901,7 @@ internal fun TodoEditorScreen(
     // 新建任务时自动聚焦并弹键盘：少点一次输入框
     val titleFocus = remember { FocusRequester() }
     LaunchedEffect(initialItem?.id) {
-        if (initialItem == null) titleFocus.requestFocus()
+        if (initialItem == null) runCatching { titleFocus.requestFocus() }
     }
 
     fun persist() {
@@ -2422,6 +2422,14 @@ internal fun TodoEditorScreen(
                         }
                     }
                 )
+                TextButton(
+                    enabled = newSubtaskText.isNotBlank(),
+                    onClick = {
+                        subtasks.add(TodoSubtask(text = newSubtaskText.trim()))
+                        newSubtaskText = ""
+                    },
+                    modifier = Modifier.testTag("add_subtask")
+                ) { Text("添加") }
             }
 
             Spacer(Modifier.height(16.dp))

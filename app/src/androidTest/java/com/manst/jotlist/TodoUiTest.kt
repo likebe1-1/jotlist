@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -112,7 +115,7 @@ class TodoUiTest {
         composeRule.onNodeWithText("重复").performClick()
         composeRule.onNodeWithText("每天").performClick()
         composeRule.onNodeWithTag("subtask_input").performTextInput("First step")
-        composeRule.onNodeWithTag("subtask_input").performImeAction()
+        composeRule.onNodeWithTag("add_subtask").performClick()
         composeRule.onNodeWithTag("save_task").performClick()
 
         composeRule.onNodeWithText("每天", substring = true).assertIsDisplayed()
@@ -137,7 +140,7 @@ class TodoUiTest {
         composeRule.onNodeWithText("日历视图").performClick()
         composeRule.onNodeWithText("日历").assertIsDisplayed()
         composeRule.onNodeWithText("选择日期：", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("返回").performClick()
+        composeRule.onNode(hasContentDescription("返回") or hasText("返回")).performClick()
 
         composeRule.onNodeWithContentDescription("更多选项").performClick()
         composeRule.onNodeWithText("完成统计").performClick()
@@ -159,7 +162,7 @@ class TodoUiTest {
         composeRule.onNodeWithText(taskName).performClick()
         composeRule.onNodeWithText("保存计划").performClick()
         composeRule.onNodeWithText("计划置顶").assertIsDisplayed()
-        composeRule.onNodeWithText("返回").performClick()
+        composeRule.onNode(hasContentDescription("返回") or hasText("返回")).performClick()
         composeRule.onNodeWithText("今日计划").assertIsDisplayed()
     }
 
@@ -188,7 +191,7 @@ class TodoUiTest {
         composeRule.onNodeWithTag("note_more_options").performClick()
         composeRule.onNodeWithText("编辑").performClick()
         composeRule.onNodeWithTag("note_title_editor").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("返回").performClick()
+        composeRule.onNode(hasContentDescription("返回") or hasText("返回")).performClick()
         composeRule.onNodeWithText("Saved note content").assertIsDisplayed()
         composeRule.onNodeWithTag("note_more_options").performClick()
         composeRule.onNodeWithText("转为待办").performClick()
@@ -207,14 +210,14 @@ class TodoUiTest {
             .performTextInput("Remember to review this later")
         composeRule.onNodeWithText("收集").performClick()
         composeRule.onNodeWithText("Remember to review this later").performClick()
-        composeRule.onNodeWithText("返回").performClick()
+        composeRule.onNode(hasContentDescription("返回") or hasText("返回")).performClick()
 
         composeRule.onNodeWithTag("notes_more_options").performClick()
         composeRule.onNodeWithText("今日小结").performClick()
         // 分节标题是"今日完成 · N"，这里断言空状态文案更稳定。
         composeRule.onNodeWithText("今天还没有完成的待办").assertIsDisplayed()
         composeRule.onNodeWithText("今天的笔记 · 1").assertIsDisplayed()
-        composeRule.onNodeWithText("返回").performClick()
+        composeRule.onNode(hasContentDescription("返回") or hasText("返回")).performClick()
         composeRule.onNodeWithTag("notes_more_options").performClick()
         composeRule.onNodeWithText("时间线").performClick()
         composeRule.onNodeWithText("时间线").assertIsDisplayed()
@@ -253,7 +256,7 @@ class TodoUiTest {
         composeRule.onNodeWithText("整理未完成任务").performClick()
         composeRule.onNodeWithText("整理未完成任务").assertIsDisplayed()
         composeRule.onNodeWithText("没有需要整理的任务。").assertIsDisplayed()
-        composeRule.onNodeWithText("返回").performClick()
+        composeRule.onNode(hasContentDescription("返回") or hasText("返回")).performClick()
         composeRule.onNodeWithTag("add_task").assertIsDisplayed()
     }
 
@@ -335,7 +338,7 @@ class TodoUiTest {
         composeRule.onNodeWithTag("settings_dnd_start").assertIsDisplayed()
         composeRule.onNodeWithTag("settings_dnd_end").assertIsDisplayed()
 
-        composeRule.onNodeWithText("返回").performClick()
+        composeRule.onNode(hasContentDescription("返回") or hasText("返回")).performClick()
         composeRule.onNodeWithTag("add_task").assertIsDisplayed()
     }
 
@@ -348,7 +351,7 @@ class TodoUiTest {
 
         composeRule.onNodeWithTag("focus_pick").performClick()
         // 任务名同时出现在弹窗行和背后的列表里，只点可点击的那一行。
-        composeRule.onNode(hasText(taskName) and hasClickAction()).performClick()
+        composeRule.onNode(hasText(taskName) and hasAnyAncestor(isDialog())).performClick()
         composeRule.onNodeWithText("保存").performClick()
 
         composeRule.onNodeWithTag("focus_card").assertIsDisplayed()
@@ -368,7 +371,7 @@ class TodoUiTest {
         composeRule.onNodeWithText("设置").performClick()
         composeRule.onNodeWithTag("settings_density_COMPACT").performClick()
         composeRule.onNodeWithTag("settings_density_COMFORTABLE").performClick()
-        composeRule.onNodeWithText("返回").performClick()
+        composeRule.onNode(hasContentDescription("返回") or hasText("返回")).performClick()
 
         // 换密度后列表照常可用。
         composeRule.onNodeWithText(taskName).assertIsDisplayed()
@@ -381,8 +384,8 @@ class TodoUiTest {
 
         composeRule.onNodeWithTag("add_task").performClick()
         composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
-        composeRule.onNodeWithTag("subtask_input").performTextInput("First step")
-        composeRule.onNodeWithTag("subtask_input").performImeAction()
+        composeRule.onNodeWithTag("subtask_input").performTextInput("Step one")
+        composeRule.onNodeWithTag("add_subtask").performClick()
         composeRule.onNodeWithTag("save_task").performClick()
 
         composeRule.onAllNodesWithText(taskName).assertCountEquals(1)

@@ -84,7 +84,7 @@ internal fun UnifiedSearchScreen(
         val searchFocus = remember { FocusRequester() }
         val focusManager = LocalFocusManager.current
         val keyboardController = LocalSoftwareKeyboardController.current
-        LaunchedEffect(Unit) { searchFocus.requestFocus() }
+        LaunchedEffect(Unit) { runCatching { searchFocus.requestFocus() } }
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
