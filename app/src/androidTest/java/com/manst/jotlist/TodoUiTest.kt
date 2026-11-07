@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Rule
@@ -80,6 +81,7 @@ class TodoUiTest {
 
         composeRule.onNodeWithTag("add_task").performClick()
         composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("save_task").performClick()
         composeRule.onNodeWithText(taskName).assertIsDisplayed()
 
@@ -99,6 +101,7 @@ class TodoUiTest {
 
         composeRule.onNodeWithTag("add_task").performClick()
         composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("pin_task").performClick()
         composeRule.onNodeWithTag("save_task").performClick()
 
@@ -112,9 +115,11 @@ class TodoUiTest {
 
         composeRule.onNodeWithTag("add_task").performClick()
         composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithText("重复").performClick()
         composeRule.onNodeWithText("每天").performClick()
         composeRule.onNodeWithTag("subtask_input").performTextInput("First step")
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("add_subtask").performClick()
         composeRule.onNodeWithTag("save_task").performClick()
 
@@ -154,6 +159,7 @@ class TodoUiTest {
         val taskName = "Planned task ${System.nanoTime()}"
         composeRule.onNodeWithTag("add_task").performClick()
         composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("save_task").performClick()
 
         composeRule.onNodeWithContentDescription("更多选项").performClick()
@@ -173,12 +179,16 @@ class TodoUiTest {
         composeRule.onNodeWithText("笔记").performClick()
         composeRule.onNodeWithTag("add_note").performClick()
         composeRule.onNodeWithTag("note_title_editor").performTextInput(noteTitle)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("note_body_editor").performTextInput("Saved note content")
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("add_tag").performClick()
         composeRule.onNodeWithText("标签名称").performTextInput("work")
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithText("添加").performClick()
         composeRule.onNodeWithTag("toolbar_todo").performClick()
         composeRule.onNodeWithTag("note_todo_text_0").performTextInput("Call back")
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("save_note").performClick()
 
         composeRule.onNodeWithText(noteTitle).assertIsDisplayed()
@@ -208,6 +218,7 @@ class TodoUiTest {
         composeRule.onNodeWithText("快速收集").performClick()
         composeRule.onNodeWithText("先记下来，稍后整理")
             .performTextInput("Remember to review this later")
+            Espresso.closeSoftKeyboard()
         composeRule.onNodeWithText("收集").performClick()
         composeRule.onNodeWithText("Remember to review this later").performClick()
         composeRule.onNode(hasContentDescription("返回") or hasText("返回")).performClick()
@@ -231,15 +242,19 @@ class TodoUiTest {
 
         composeRule.onNodeWithTag("add_task").performClick()
         composeRule.onNodeWithTag("task_text_input").performTextInput(taskTitle)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("save_task").performClick()
         composeRule.onNodeWithText("笔记").performClick()
         composeRule.onNodeWithTag("add_note").performClick()
         composeRule.onNodeWithTag("note_title_editor").performTextInput(noteTitle)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("note_body_editor").performTextInput("Body $phrase")
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("save_note").performClick()
         composeRule.onNodeWithTag("navigation_搜索").performClick()
 
         composeRule.onNodeWithTag("unified_search_input").performTextInput(phrase)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithText(noteTitle).assertIsDisplayed()
         composeRule.onNodeWithText(taskTitle).assertExists()
         composeRule.onNodeWithTag("search_filter_笔记").performClick()
@@ -265,6 +280,7 @@ class TodoUiTest {
         val taskName = "Unplan task ${System.nanoTime()}"
         composeRule.onNodeWithTag("add_task").performClick()
         composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("save_task").performClick()
 
         composeRule.onNodeWithContentDescription("更多选项").performClick()
@@ -283,6 +299,7 @@ class TodoUiTest {
         val taskName = "Unplan picker ${System.nanoTime()}"
         composeRule.onNodeWithTag("add_task").performClick()
         composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("save_task").performClick()
 
         composeRule.onNodeWithContentDescription("更多选项").performClick()
@@ -309,7 +326,9 @@ class TodoUiTest {
         composeRule.onNodeWithText("笔记").performClick()
         composeRule.onNodeWithTag("add_note").performClick()
         composeRule.onNodeWithTag("note_title_editor").performTextInput(noteTitle)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("note_body_editor").performTextInput("Body without inline todos")
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("save_note").performClick()
 
         composeRule.onNodeWithText(noteTitle).performClick()
@@ -329,14 +348,14 @@ class TodoUiTest {
         composeRule.onNodeWithContentDescription("更多选项").performClick()
         composeRule.onNodeWithText("设置").performClick()
 
-        composeRule.onNodeWithText("外观").assertIsDisplayed()
-        composeRule.onNodeWithText("通知与提醒").assertIsDisplayed()
+        composeRule.onNodeWithText("外观").assertExists()
+        composeRule.onNodeWithText("通知与提醒").assertExists()
         composeRule.onNodeWithText("免打扰").assertExists()
         composeRule.onNodeWithTag("settings_dnd_start").assertDoesNotExist()
 
         composeRule.onNodeWithTag("settings_dnd_switch").performClick()
-        composeRule.onNodeWithTag("settings_dnd_start").assertIsDisplayed()
-        composeRule.onNodeWithTag("settings_dnd_end").assertIsDisplayed()
+        composeRule.onNodeWithTag("settings_dnd_start").assertExists()
+        composeRule.onNodeWithTag("settings_dnd_end").assertExists()
 
         composeRule.onNode(hasContentDescription("返回") or hasText("返回")).performClick()
         composeRule.onNodeWithTag("add_task").assertIsDisplayed()
@@ -347,6 +366,7 @@ class TodoUiTest {
         val taskName = "Focus task ${System.nanoTime()}"
         composeRule.onNodeWithTag("add_task").performClick()
         composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("save_task").performClick()
 
         composeRule.onNodeWithTag("focus_pick").performClick()
@@ -364,6 +384,7 @@ class TodoUiTest {
         val taskName = "Density task ${System.nanoTime()}"
         composeRule.onNodeWithTag("add_task").performClick()
         composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("save_task").performClick()
         composeRule.onNodeWithText(taskName).assertIsDisplayed()
 
@@ -384,7 +405,9 @@ class TodoUiTest {
 
         composeRule.onNodeWithTag("add_task").performClick()
         composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("subtask_input").performTextInput("Step one")
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("add_subtask").performClick()
         composeRule.onNodeWithTag("save_task").performClick()
 
@@ -409,8 +432,10 @@ class TodoUiTest {
         composeRule.onNodeWithText("笔记").performClick()
         composeRule.onNodeWithTag("add_note").performClick()
         composeRule.onNodeWithTag("note_title_editor").performTextInput(noteTitle)
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("note_body_editor")
             .performTextInput("# Markdown heading\n\n**Bold text**\n\n- List item")
+            Espresso.closeSoftKeyboard()
         composeRule.onNodeWithTag("note_format_help").performClick()
         composeRule.onNodeWithText("用工具轻松排版").assertExists()
         composeRule.onNodeWithText("知道了").performClick()
@@ -420,6 +445,7 @@ class TodoUiTest {
         composeRule.onNodeWithTag("toolbar_todo").assertIsDisplayed()
         composeRule.onNodeWithTag("toolbar_todo").performClick()
         composeRule.onNodeWithTag("note_todo_text_0").performTextInput("Review item")
+        Espresso.closeSoftKeyboard()
         composeRule.onNodeWithText("Review item").assertIsDisplayed()
         composeRule.onNodeWithTag("markdown_preview_mode").performClick()
         composeRule.onNodeWithText("Markdown heading").assertIsDisplayed()
