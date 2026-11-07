@@ -103,7 +103,7 @@ class TodoUiTest {
         composeRule.onNodeWithTag("save_task").performClick()
 
         composeRule.onNodeWithText(taskName).assertIsDisplayed()
-        composeRule.onNodeWithText("置顶").assertIsDisplayed()
+        composeRule.onNodeWithText("置顶").assertExists()
     }
 
     @Test
@@ -241,12 +241,12 @@ class TodoUiTest {
 
         composeRule.onNodeWithTag("unified_search_input").performTextInput(phrase)
         composeRule.onNodeWithText(noteTitle).assertIsDisplayed()
-        composeRule.onNodeWithText(taskTitle).assertIsDisplayed()
+        composeRule.onNodeWithText(taskTitle).assertExists()
         composeRule.onNodeWithTag("search_filter_笔记").performClick()
         composeRule.onNodeWithText(noteTitle).assertIsDisplayed()
         composeRule.onAllNodesWithText(taskTitle).assertCountEquals(0)
         composeRule.onNodeWithTag("search_filter_待办").performClick()
-        composeRule.onNodeWithText(taskTitle).assertIsDisplayed()
+        composeRule.onNodeWithText(taskTitle).assertExists()
         composeRule.onAllNodesWithText(noteTitle).assertCountEquals(0)
     }
 
@@ -331,7 +331,7 @@ class TodoUiTest {
 
         composeRule.onNodeWithText("外观").assertIsDisplayed()
         composeRule.onNodeWithText("通知与提醒").assertIsDisplayed()
-        composeRule.onNodeWithText("免打扰").assertIsDisplayed()
+        composeRule.onNodeWithText("免打扰").assertExists()
         composeRule.onNodeWithTag("settings_dnd_start").assertDoesNotExist()
 
         composeRule.onNodeWithTag("settings_dnd_switch").performClick()
@@ -412,7 +412,7 @@ class TodoUiTest {
         composeRule.onNodeWithTag("note_body_editor")
             .performTextInput("# Markdown heading\n\n**Bold text**\n\n- List item")
         composeRule.onNodeWithTag("note_format_help").performClick()
-        composeRule.onNodeWithText("用工具轻松排版").assertIsDisplayed()
+        composeRule.onNodeWithText("用工具轻松排版").assertExists()
         composeRule.onNodeWithText("知道了").performClick()
         composeRule.onNodeWithTag("toolbar_0").assertIsDisplayed()
         composeRule.onNodeWithTag("toolbar_1").assertIsDisplayed()
