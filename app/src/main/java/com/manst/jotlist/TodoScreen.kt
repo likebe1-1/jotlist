@@ -1872,6 +1872,42 @@ internal fun TodoEditorScreen(
     val context = LocalContext.current
     val priorityLabels = listOf("低", "中", "高")
     val dueAt = dueAtMillis.takeIf { it > 0L }
+    // —— 草稿：防抖自动保存，重开时提示恢复 ——
+    val taskDraft = taskDraftKey(initialItem?.id)
+    var pendingDraft by remember { mutableStateOf<EditorDraft?>(null) }
+    LaunchedEffect(taskDraft) {
+        val draft = loadEditorDraft(context, taskDraft)
+        if (draft != null &&
+            shouldOfferDraftRestore(draft.savedAt, initialItem?.createdAt, initialItem == null)
+        ) {
+            pendingDraft = draft
+        }
+    }
+    LaunchedEffect(text, category, priority, dueAtMillis, reminderMinutesBefore, isPinned, recurrence, subtasks.toList()) {
+        if (pendingDraft != null) return@LaunchedEffect
+        val hasContent = text.isNotBlank() || subtasks.isNotEmpty() ||
+            dueAtMillis > 0L || category.isNotBlank()
+        if (!hasContent) return@LaunchedEffect
+        kotlinx.coroutines.delay(800)
+        saveEditorDraft(
+            context,
+            taskDraft,
+            todoToJson(
+                TodoItem(
+                    id = initialItem?.id ?: 0L,
+                    text = text,
+                    category = category,
+                    priority = priority,
+                    dueAt = dueAtMillis.takeIf { it > 0L },
+                    reminderMinutesBefore = reminderMinutesBefore,
+                    isPinned = isPinned,
+                    recurrence = recurrence.name,
+                    subtasks = subtasks.toList(),
+                    createdAt = initialItem?.createdAt ?: System.currentTimeMillis()
+                )
+            )
+        )
+    }
     val calendar = Calendar.getInstance().apply {
         timeInMillis = dueAt ?: System.currentTimeMillis()
     }
@@ -1905,6 +1941,7 @@ internal fun TodoEditorScreen(
     }
 
     fun persist() {
+        clearEditorDraft(context, taskDraftKey(initialItem?.id))
         onSave(
             TodoItem(
                 id = initialItem?.id ?: nextTodoId(),
@@ -1942,6 +1979,43 @@ internal fun TodoEditorScreen(
         persist()
     }
 
+    pendingDraft?.let { draft ->
+        AlertDialog(
+            onDismissRequest = { pendingDraft = null },
+            title = { Text("恢复上次的草稿？") },
+            text = { Text("这个任务上次没有保存完，可以接着编辑，也可以丢掉重新开始。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        runCatching { todoFromJson(draft.payload) }.getOrNull()?.let { restored ->
+                            text = restored.text
+                            category = restored.category
+                            priority = restored.priority
+                            dueAtMillis = restored.dueAt ?: 0L
+                            reminderMinutesBefore = restored.reminderMinutesBefore
+                            isPinned = restored.isPinned
+                            recurrence = Recurrence.entries
+                                .firstOrNull { it.name == restored.recurrence } ?: Recurrence.NONE
+                            subtasks.clear()
+                            subtasks.addAll(restored.subtasks)
+                        }
+                        pendingDraft = null
+                    },
+                    modifier = Modifier.testTag("draft_restore")
+                ) { Text("恢复") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        clearEditorDraft(context, taskDraftKey(initialItem?.id))
+                        pendingDraft = null
+                    },
+                    modifier = Modifier.testTag("draft_discard")
+                ) { Text("丢弃") }
+            }
+        )
+    }
+
     if (showDiscardConfirm) {
         AlertDialog(
             onDismissRequest = { showDiscardConfirm = false },
@@ -1951,6 +2025,7 @@ internal fun TodoEditorScreen(
                 TextButton(
                     onClick = {
                         showDiscardConfirm = false
+                        clearEditorDraft(context, taskDraftKey(initialItem?.id))
                         onDismiss()
                     },
                     colors = ButtonDefaults.textButtonColors(

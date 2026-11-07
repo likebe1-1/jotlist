@@ -689,6 +689,41 @@ internal fun NoteEditorScreen(
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
+    // —— 草稿：防抖自动保存，重开时提示恢复（不自动套用）——
+    val draftKey = noteDraftKey(initialNote?.id)
+    var pendingDraft by remember { mutableStateOf<EditorDraft?>(null) }
+    LaunchedEffect(draftKey) {
+        val draft = loadEditorDraft(context, draftKey)
+        if (draft != null &&
+            shouldOfferDraftRestore(draft.savedAt, initialNote?.updatedAt, initialNote == null)
+        ) {
+            pendingDraft = draft
+        }
+    }
+    LaunchedEffect(title, body, tags.toList(), embeddedTodos.toList(), isMarkdown) {
+        if (pendingDraft != null) return@LaunchedEffect
+        val hasContent = title.isNotBlank() || body.isNotBlank() ||
+            tags.isNotEmpty() || embeddedTodos.isNotEmpty()
+        if (!hasContent) return@LaunchedEffect
+        kotlinx.coroutines.delay(800)
+        saveEditorDraft(
+            context,
+            draftKey,
+            noteToJson(
+                NoteItem(
+                    id = initialNote?.id ?: 0L,
+                    title = title.trim(),
+                    body = body,
+                    updatedAt = System.currentTimeMillis(),
+                    createdAt = initialNote?.createdAt ?: System.currentTimeMillis(),
+                    isMarkdown = isMarkdown,
+                    tags = tags.toList(),
+                    embeddedTodos = embeddedTodos.toList()
+                )
+            )
+        )
+    }
+
     // —— 编辑态保护：返回不再直接丢内容 ——
     val dirty = if (initialNote == null) {
         title.isNotBlank() || body.isNotBlank() || tags.isNotEmpty() || embeddedTodos.isNotEmpty()
@@ -727,6 +762,7 @@ internal fun NoteEditorScreen(
             titleFocus.requestFocus()
             return
         }
+        clearEditorDraft(context, draftKey)
         onSave(
             NoteItem(
                 id = initialNote?.id ?: nextTodoId(),
@@ -741,6 +777,40 @@ internal fun NoteEditorScreen(
         )
     }
 
+    pendingDraft?.let { draft ->
+        AlertDialog(
+            onDismissRequest = { pendingDraft = null },
+            title = { Text("恢复上次的草稿？") },
+            text = { Text("这篇笔记上次没有保存完，可以接着写，也可以丢掉重新开始。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        runCatching { noteFromJson(draft.payload) }.getOrNull()?.let { restored ->
+                            title = restored.title
+                            bodyField = TextFieldValue(restored.body)
+                            isMarkdown = restored.isMarkdown
+                            tags.clear()
+                            tags.addAll(restored.tags)
+                            embeddedTodos.clear()
+                            embeddedTodos.addAll(restored.embeddedTodos)
+                        }
+                        pendingDraft = null
+                    },
+                    modifier = Modifier.testTag("draft_restore")
+                ) { Text("恢复") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        clearEditorDraft(context, draftKey)
+                        pendingDraft = null
+                    },
+                    modifier = Modifier.testTag("draft_discard")
+                ) { Text("丢弃") }
+            }
+        )
+    }
+
     if (showDiscardConfirm) {
         AlertDialog(
             onDismissRequest = { showDiscardConfirm = false },
@@ -750,6 +820,7 @@ internal fun NoteEditorScreen(
                 TextButton(
                     onClick = {
                         showDiscardConfirm = false
+                        clearEditorDraft(context, draftKey)
                         onDismiss()
                     },
                     colors = ButtonDefaults.textButtonColors(
