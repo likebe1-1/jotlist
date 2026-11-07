@@ -1,5 +1,7 @@
 package com.manst.jotlist
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -85,6 +87,45 @@ internal fun SettingsScreen(
     var draftPalette by remember { mutableStateOf(readWidgetPalette(context)) }
     var appliedPalette by remember { mutableStateOf(readWidgetPalette(context)) }
     var showTrash by remember { mutableStateOf(false) }
+    var backupMessage by remember { mutableStateOf<String?>(null) }
+    var lastBackup by remember { mutableStateOf(lastBackupAt(context)) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                val appVersion = context.packageManager
+                    .getPackageInfo(context.packageName, 0).versionName.orEmpty()
+                val payload = buildBackupJson(context, appVersion)
+                context.contentResolver.openOutputStream(uri)?.use { it.write(payload.toByteArray()) }
+                    ?: error("无法写入所选文件")
+                markBackupExported(context)
+                payload.length
+            }.onSuccess { size ->
+                lastBackup = lastBackupAt(context)
+                backupMessage = "已导出已保存的数据（约 ${size / 1024} KB）"
+            }.onFailure { backupMessage = "导出失败：${it.message}" }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                val raw = context.contentResolver.openInputStream(uri)
+                    ?.bufferedReader()?.use { it.readText() } ?: error("无法读取文件")
+                restoreBackupJson(context, raw)
+            }.onSuccess { outcome ->
+                backupMessage = when (outcome) {
+                    is RestoreOutcome.Success ->
+                        "已恢复 ${outcome.summary.todos} 条待办、${outcome.summary.notes} 篇笔记"
+                    is RestoreOutcome.Failed -> "恢复失败：${outcome.message}"
+                }
+            }.onFailure { backupMessage = "恢复失败：${it.message}" }
+        }
+    }
 
     fun applyDoNotDisturb(enabled: Boolean, start: Int, end: Int) {
         dndEnabled = enabled
@@ -279,6 +320,38 @@ internal fun SettingsScreen(
             )
         }
 
+        SettingsSection(title = "备份与恢复") {
+            SettingsRow(
+                title = "导出备份",
+                value = if (lastBackup > 0) {
+                    "上次备份：${backupDateLabel(lastBackup)}"
+                } else {
+                    "还没有备份过（只导出已保存内容，草稿不含在内）"
+                },
+                actionLabel = "导出",
+                actionTestTag = "settings_backup_export",
+                onAction = {
+                    exportLauncher.launch(
+                        "jotlist-backup-${backupDateLabel(System.currentTimeMillis(), "yyyyMMdd")}.json"
+                    )
+                }
+            )
+            SettingsRow(
+                title = "恢复备份",
+                value = "整体替换当前数据，替换前会自动留一份快照",
+                actionLabel = "选择文件",
+                actionTestTag = "settings_backup_restore",
+                onAction = { importLauncher.launch(arrayOf("application/json")) }
+            )
+            backupMessage?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
         if (showTrash) {
             Dialog(
                 onDismissRequest = { showTrash = false },
@@ -413,3 +486,7 @@ private fun SettingsRow(
         }
     }
 }
+
+private fun backupDateLabel(timestamp: Long, pattern: String = "M月d日 HH:mm"): String =
+    java.text.SimpleDateFormat(pattern, java.util.Locale.getDefault())
+        .format(java.util.Date(timestamp))
