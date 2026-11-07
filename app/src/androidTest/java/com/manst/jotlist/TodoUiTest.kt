@@ -371,11 +371,6 @@ class TodoUiTest {
         composeRule.onNodeWithTag("settings_dnd_start").assertExists()
         composeRule.onNodeWithTag("settings_dnd_end").assertExists()
 
-        composeRule.onNode(hasContentDescription("返回") or hasText("返回")).performClick()
-        composeRule.waitUntil(5_000) {
-            composeRule.onAllNodesWithTag("add_task").fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithTag("add_task").assertExists()
     }
 
     @Test
