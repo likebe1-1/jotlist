@@ -1873,7 +1873,10 @@ internal fun TodoEditorScreen(
                 recurrence.name != initialItem.recurrence ||
                 subtasks.toList() != initialItem.subtasks
         }
-        if (!changed) return@LaunchedEffect
+        if (!changed) {
+            clearEditorDraft(context, taskDraft)
+            return@LaunchedEffect
+        }
         kotlinx.coroutines.delay(800)
         saveEditorDraft(
             context,

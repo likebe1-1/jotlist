@@ -712,7 +712,11 @@ internal fun NoteEditorScreen(
                 embeddedTodos.toList() != initialNote.embeddedTodos ||
                 isMarkdown != initialNote.isMarkdown
         }
-        if (!changed) return@LaunchedEffect
+        if (!changed) {
+            // 改回原样（或从未改动）：草稿没有意义，清掉避免下次误提示
+            clearEditorDraft(context, draftKey)
+            return@LaunchedEffect
+        }
         kotlinx.coroutines.delay(800)
         saveEditorDraft(
             context,
