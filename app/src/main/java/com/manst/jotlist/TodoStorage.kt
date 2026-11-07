@@ -188,34 +188,7 @@ internal fun todoFromJson(obj: JSONObject): TodoItem {
 internal fun saveTodoList(context: Context, list: List<TodoItem>) {
     val arr = JSONArray()
     list.forEach { item ->
-        arr.put(JSONObject().apply {
-            put("id", item.id)
-            put("text", item.text)
-            put("isDone", item.isDone)
-            put("createdAt", item.createdAt)
-            put("completedAt", item.completedAt ?: JSONObject.NULL)
-            put("plannedAt", item.plannedAt ?: JSONObject.NULL)
-            put("reviewHiddenUntil", item.reviewHiddenUntil ?: JSONObject.NULL)
-            put("focusDate", item.focusDate ?: JSONObject.NULL)
-            put("resetAt", item.resetAt ?: JSONObject.NULL)
-            put("dueAt", item.dueAt ?: JSONObject.NULL)
-            put("category", item.category)
-            put("priority", item.priority)
-            put("reminderMinutesBefore", item.reminderMinutesBefore)
-            put("isPinned", item.isPinned)
-            put("recurrence", item.recurrence)
-            put("recurrenceNextId", item.recurrenceNextId ?: JSONObject.NULL)
-            put("linkedNoteId", item.linkedNoteId ?: JSONObject.NULL)
-            put("subtasks", JSONArray().apply {
-                item.subtasks.forEach { subtask ->
-                    put(JSONObject().apply {
-                        put("id", subtask.id)
-                        put("text", subtask.text)
-                        put("isDone", subtask.isDone)
-                    })
-                }
-            })
-        })
+        arr.put(todoToJson(item))
     }
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .edit()
@@ -231,53 +204,7 @@ internal fun loadTodoList(context: Context): TodoListLoadResult {
         val arr = JSONArray(json)
         TodoListLoadResult.Loaded(
             List(arr.length()) { i ->
-                val obj = arr.getJSONObject(i)
-                val id: Long = obj.getLong("id")
-                val createdAt: Long = obj.optLong("createdAt", id)
-                TodoItem(
-                    id = id,
-                    text = obj.getString("text"),
-                    isDone = obj.getBoolean("isDone"),
-                    createdAt = createdAt,
-                    completedAt = if (obj.isNull("completedAt")) null
-                    else obj.optLong("completedAt").saneTimestamp(),
-                    plannedAt = if (obj.isNull("plannedAt")) null
-                    else obj.optLong("plannedAt").saneTimestamp(),
-                    reviewHiddenUntil = if (obj.isNull("reviewHiddenUntil")) null
-                    else obj.optLong("reviewHiddenUntil").saneTimestamp(),
-                    focusDate = if (obj.isNull("focusDate")) null
-                    else obj.optLong("focusDate").saneTimestamp(),
-                    resetAt = if (obj.isNull("resetAt")) null
-                    else obj.optLong("resetAt").saneTimestamp(),
-                    dueAt = if (obj.isNull("dueAt")) null
-                    else obj.optLong("dueAt").saneTimestamp(),
-                    category = obj.optString("category", ""),
-                    priority = obj.optInt("priority", 1).coerceIn(0, 2),
-                    // -1 是编辑器里「关闭提醒」的哨兵值，不能按 0..60 夹掉，
-                    // 否则重新加载后「关闭」会悄悄变回「到期时提醒」。
-                    reminderMinutesBefore = obj.optInt("reminderMinutesBefore", 0)
-                        .coerceIn(-1, 60),
-                    isPinned = obj.optBoolean("isPinned", false),
-                    recurrence = Recurrence.entries
-                        .firstOrNull { it.name == obj.optString("recurrence") }?.name ?: "NONE",
-                    recurrenceNextId = if (obj.isNull("recurrenceNextId")) {
-                        null
-                    } else {
-                        obj.optLong("recurrenceNextId").takeIf { it > 0L }
-                    },
-                    linkedNoteId = if (obj.isNull("linkedNoteId")) null
-                    else obj.optLong("linkedNoteId").takeIf { it > 0L },
-                    subtasks = obj.optJSONArray("subtasks")?.let { subtasks ->
-                        List(subtasks.length()) { index ->
-                            val subtask = subtasks.getJSONObject(index)
-                            TodoSubtask(
-                                id = subtask.optLong("id", nextTodoId()),
-                                text = subtask.getString("text"),
-                                isDone = subtask.optBoolean("isDone", false)
-                            )
-                        }
-                    }.orEmpty()
-                )
+                todoFromJson(arr.getJSONObject(i))
             }
         )
     } catch (_: Exception) {
