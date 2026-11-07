@@ -65,3 +65,42 @@ internal fun trashFromJson(json: String): List<TrashEntry> {
         emptyList()
     }
 }
+
+/**
+ * 直接从事前的主列表 JSON 里取出这一条原始对象作为 payload。
+ * 不重新序列化，避免字段映射和 saveTodoList 漂移。
+ */
+internal fun captureTodoPayload(context: Context, todoId: Long): String? {
+    val json = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .getString(KEY_TODO_LIST, null) ?: return null
+    return try {
+        val array = JSONArray(json)
+        for (index in 0 until array.length()) {
+            val item = array.optJSONObject(index) ?: continue
+            if (item.optLong("id", Long.MIN_VALUE) == todoId) return item.toString()
+        }
+        null
+    } catch (_: Exception) {
+        null
+    }
+}
+
+/** 追加一条回收站记录（同 id 同类型只保留一条）。 */
+internal fun appendTrash(context: Context, entry: TrashEntry) {
+    val kept = loadTrash(context).filterNot { it.kind == entry.kind && it.id == entry.id }
+    saveTrash(context, kept + entry)
+}
+
+/** 恢复或撤销时把某条从回收站拿掉。 */
+internal fun removeTrashEntry(context: Context, kind: TrashKind, id: Long) {
+    val kept = loadTrash(context).filterNot { it.kind == kind && it.id == id }
+    saveTrash(context, kept)
+}
+
+/** 启动时清理过期条目。 */
+internal fun pruneTrashNow(context: Context, now: Long = System.currentTimeMillis()) {
+    val entries = loadTrash(context)
+    if (entries.isEmpty()) return
+    val kept = pruneTrash(entries, now)
+    if (kept.size != entries.size) saveTrash(context, kept)
+}
