@@ -9,7 +9,7 @@
 一款克制的 Android 待办 + 笔记应用。没有账号，没有广告，没有云端。
 
 [![Android CI](https://github.com/likebe1-1/jotlist/actions/workflows/android.yml/badge.svg)](https://github.com/likebe1-1/jotlist/actions/workflows/android.yml)
-![version](https://img.shields.io/badge/version-6.0-4C5FD5)
+![version](https://img.shields.io/badge/version-7.0-4C5FD5)
 ![minSdk](https://img.shields.io/badge/minSdk-26%20(Android%208.0)-3DDC84)
 ![targetSdk](https://img.shields.io/badge/targetSdk-35-3DDC84)
 ![license](https://img.shields.io/badge/license-MIT-blue)
@@ -86,6 +86,12 @@ keyPassword=******
 ```
 
 ## 更新日志
+
+### 7.0
+
+- **任务编辑器重构**：顶栏改为「返回 + 主色保存」；属性区改成 52dp 字段行；优先级改三段按钮；截止合并成一行并提供「今天 18:00 / 明天 9:00 / 下周一 9:00」快捷项，只选日期时自动落到下一个整点；提醒支持「关闭」；分类可选已有或新建；子任务回车即添加；置顶改开关行；编辑态底部可直接删除（走 Snackbar 撤销）
+- **笔记编辑器重构**：吸底排版工具条（H / B / 列表 / 待办 / 预览 / 帮助），标题与正文无边框连续书写；标签改成 chips；内嵌待办轻量化；有改动时返回先确认；空标题自动取正文首行，全空则提示
+- **修复**：关闭提醒保存后不生效（重新加载会变回准时提醒）且仍弹精准提醒授权；快速收集弹窗未自动聚焦；搜索 IME 搜索键不收键盘；任务内容 IME 完成键不保存；完成 / 删除 / 清空 撤销不恢复统计与提醒
 
 ### 6.0
 

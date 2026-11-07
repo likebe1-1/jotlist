@@ -6,7 +6,7 @@
 |---|---|
 | 应用名称 | Jotlist |
 | 包名 | com.manst.jotlist |
-| 版本 | 5.0（versionCode 5） |
+| 版本 | 7.0（versionCode 7） |
 | 分类 | 效率 / 生产力 |
 | 价格 | 免费，无内购，无广告 |
 | 支持系统 | Android 8.0（API 26）及以上 |
@@ -100,23 +100,21 @@ Light, dark or system theme, three list densities (compact / standard / comforta
 
 ---
 
-## 更新说明（What's new / 5.0）
+## 更新说明（What's new / 7.0）
 
 **中文**
 
-> 5.0
-> · 更名 Jotlist，全新 Material 风格图标
-> · 重复任务改为同一条自动循环：完成后标记完成，到点自动恢复，不再生成副本
-> · 支持 Android 8.0 及以上系统
-> · 修复若干细节问题，完善提醒与免打扰逻辑
+> 7.0
+> · 任务编辑器重做：字段行布局、三段优先级、截止快捷项（今天 / 明天 / 下周一），提醒可关闭，子任务回车即添加
+> · 笔记编辑器重做：吸底排版工具条（标题 / 加粗 / 列表 / 待办 / 预览），标签 chips，内嵌待办，返回保护
+> · 修复关闭提醒不生效、快速收集未自动聚焦、搜索键盘不收起、撤销不恢复统计与提醒等问题
 
 **English**
 
-> 5.0
-> · New name and Material icon
-> · Recurring tasks now loop in place: complete it, and it resets automatically at the next cycle instead of creating a copy
-> · Supports Android 8.0 and above
-> · Various fixes to reminders and do-not-disturb handling
+> 7.0
+> · Redesigned task editor: field rows, segmented priority, quick due presets, reminders can be turned off, add subtasks with Enter
+> · Redesigned note editor: sticky formatting toolbar (heading / bold / list / todo / preview), tag chips, inline todos, back protection
+> · Fixed: “reminder off” not persisting, quick capture not focusing, search keyboard not hiding, undo not restoring stats/reminders
 
 ---
 
