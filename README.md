@@ -9,7 +9,7 @@
 一款克制的 Android 待办 + 笔记应用。没有账号，没有广告，没有云端。
 
 [![Android CI](https://github.com/likebe1-1/jotlist/actions/workflows/android.yml/badge.svg)](https://github.com/likebe1-1/jotlist/actions/workflows/android.yml)
-![version](https://img.shields.io/badge/version-7.1-4C5FD5)
+![version](https://img.shields.io/badge/version-7.2-4C5FD5)
 ![minSdk](https://img.shields.io/badge/minSdk-26%20(Android%208.0)-3DDC84)
 ![targetSdk](https://img.shields.io/badge/targetSdk-35-3DDC84)
 ![license](https://img.shields.io/badge/license-MIT-blue)
@@ -88,6 +88,15 @@ keyPassword=******
 ```
 
 ## 更新日志
+
+### 7.2
+
+- **修复**：打开已有笔记/任务不改动也会写草稿，下次进来误弹「恢复上次的草稿？」；编辑后改回原样草稿不清
+- **修复**：从回收站恢复待办后提醒不重排，那条任务的闹钟永远不响
+- **修复**：回收站恢复后桌面组件不刷新，仍显示已删除或漏掉已恢复的条目
+- **修复**：删除笔记/任务后其草稿仍保留，下次误提示恢复；备份恢复后旧草稿失效却仍提示
+- **修复**：删除确认弹窗是死代码且真走到会绕过回收站；笔记删除路径补清残留草稿
+- **加固**：恢复备份与清空回收站都改为先确认（恢复备份仍会自动保留替换前快照）
 
 ### 7.1
 
