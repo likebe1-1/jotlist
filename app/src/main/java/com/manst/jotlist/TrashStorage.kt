@@ -136,7 +136,10 @@ internal fun restoreTodo(context: Context, entry: TrashEntry): TodoItem? {
     val noteIds = (loadNotes(context) as? NotesLoadResult.Loaded)
         ?.items?.map { it.id }?.toSet().orEmpty()
     saveTodoList(context, repairTodoReferences(loaded.items + item, noteIds))
+    // 恢复后要把提醒排回去，否则这条任务的闹钟永远不会响
+    if (!item.isDone) scheduleReminder(context, item)
     removeTrashEntry(context, TrashKind.TODO, entry.id)
+    TodoWidgetProvider.refresh(context)
     return item
 }
 /**
@@ -160,6 +163,7 @@ internal fun restoreNote(context: Context, entry: TrashEntry): NoteItem? {
         }
     }
     removeTrashEntry(context, TrashKind.NOTE, entry.id)
+    NotesWidgetProvider.refresh(context)
     return note
 }
 

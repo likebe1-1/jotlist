@@ -70,3 +70,13 @@ internal fun clearEditorDraft(context: Context, key: String) {
         .remove(key)
         .apply()
 }
+
+/** 清空全部编辑器草稿（数据恢复后旧草稿就失效了）。 */
+internal fun clearAllEditorDrafts(context: Context) {
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    val keys = prefs.all.keys.filter { it.startsWith("draft_") }
+    if (keys.isEmpty()) return
+    val editor = prefs.edit()
+    keys.forEach { editor.remove(it) }
+    editor.apply()
+}

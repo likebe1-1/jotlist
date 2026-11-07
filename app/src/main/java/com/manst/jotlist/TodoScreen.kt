@@ -144,7 +144,6 @@ internal fun TodoAppScreen(
         }
     }
     val todoListState = rememberLazyListState()
-    var pendingDelete by remember { mutableStateOf<TodoItem?>(null) }
     var showClearConfirm by remember { mutableStateOf(false) }
     var isReady by remember { mutableStateOf(false) }
     var mayPersist by remember { mutableStateOf(false) }
@@ -487,29 +486,6 @@ internal fun TodoAppScreen(
         return
     }
 
-    // 单条删除确认
-    pendingDelete?.let { target ->
-        AlertDialog(
-            onDismissRequest = { pendingDelete = null },
-            title = { Text("确认删除") },
-            text = { Text("确定要删除这项任务吗？") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        cancelReminder(context, target)
-                        todoList.remove(target)
-                        pendingDelete = null
-                    },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) { Text("删除") }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("取消") }
-            }
-        )
-    }
 
     // 清空已完成确认
     if (showClearConfirm) {
@@ -1885,9 +1861,19 @@ internal fun TodoEditorScreen(
     }
     LaunchedEffect(text, category, priority, dueAtMillis, reminderMinutesBefore, isPinned, recurrence, subtasks.toList()) {
         if (pendingDraft != null) return@LaunchedEffect
-        val hasContent = text.isNotBlank() || subtasks.isNotEmpty() ||
-            dueAtMillis > 0L || category.isNotBlank()
-        if (!hasContent) return@LaunchedEffect
+        val changed = if (initialItem == null) {
+            text.isNotBlank() || subtasks.isNotEmpty() ||
+                dueAtMillis > 0L || category.isNotBlank()
+        } else {
+            text != initialItem.text || category != initialItem.category ||
+                priority != initialItem.priority ||
+                dueAtMillis != (initialItem.dueAt ?: 0L) ||
+                reminderMinutesBefore != initialItem.reminderMinutesBefore ||
+                isPinned != initialItem.isPinned ||
+                recurrence.name != initialItem.recurrence ||
+                subtasks.toList() != initialItem.subtasks
+        }
+        if (!changed) return@LaunchedEffect
         kotlinx.coroutines.delay(800)
         saveEditorDraft(
             context,
@@ -1929,7 +1915,12 @@ internal fun TodoEditorScreen(
     var showDiscardConfirm by remember { mutableStateOf(false) }
 
     fun attemptDismiss() {
-        if (dirty) showDiscardConfirm = true else onDismiss()
+        if (dirty) {
+            showDiscardConfirm = true
+        } else {
+            clearEditorDraft(context, taskDraftKey(initialItem?.id))
+            onDismiss()
+        }
     }
 
     BackHandler { attemptDismiss() }
@@ -2533,7 +2524,10 @@ internal fun TodoEditorScreen(
 
             if (initialItem != null && onDelete != null) {
                 TextButton(
-                    onClick = onDelete,
+                    onClick = {
+                        clearEditorDraft(context, taskDraftKey(initialItem.id))
+                        onDelete()
+                    },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     ),

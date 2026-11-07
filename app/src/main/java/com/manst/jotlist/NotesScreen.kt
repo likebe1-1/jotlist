@@ -358,6 +358,7 @@ internal fun NotesScreen(
                                     affectedTodoIds = affectedTodoIds
                                 )
                             )
+                            clearEditorDraft(context, noteDraftKey(note.id))
                         }
                     },
                     colors = ButtonDefaults.textButtonColors(
@@ -702,9 +703,16 @@ internal fun NoteEditorScreen(
     }
     LaunchedEffect(title, body, tags.toList(), embeddedTodos.toList(), isMarkdown) {
         if (pendingDraft != null) return@LaunchedEffect
-        val hasContent = title.isNotBlank() || body.isNotBlank() ||
-            tags.isNotEmpty() || embeddedTodos.isNotEmpty()
-        if (!hasContent) return@LaunchedEffect
+        val changed = if (initialNote == null) {
+            title.isNotBlank() || body.isNotBlank() ||
+                tags.isNotEmpty() || embeddedTodos.isNotEmpty()
+        } else {
+            title != initialNote.title || body != initialNote.body ||
+                tags.toList() != initialNote.tags ||
+                embeddedTodos.toList() != initialNote.embeddedTodos ||
+                isMarkdown != initialNote.isMarkdown
+        }
+        if (!changed) return@LaunchedEffect
         kotlinx.coroutines.delay(800)
         saveEditorDraft(
             context,
@@ -740,7 +748,13 @@ internal fun NoteEditorScreen(
     var hintMessage by remember { mutableStateOf<String?>(null) }
 
     fun attemptDismiss() {
-        if (dirty) showDiscardConfirm = true else onDismiss()
+        if (dirty) {
+            showDiscardConfirm = true
+        } else {
+            // 没有改动就关掉：把可能残留的旧草稿清掉，避免下次误提示
+            clearEditorDraft(context, draftKey)
+            onDismiss()
+        }
     }
 
     BackHandler { attemptDismiss() }

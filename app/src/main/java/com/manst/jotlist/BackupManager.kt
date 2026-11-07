@@ -103,7 +103,10 @@ internal fun restoreBackupJson(context: Context, raw: String): RestoreOutcome {
     restoredTodos.forEach { scheduleReminder(context, it) }
     sweepRecurringResets(context)
 
-    // 5) 刷新两枚桌面组件
+    // 5) 旧草稿已失效（数据整体换过），清掉避免误恢复
+    clearAllEditorDrafts(context)
+
+    // 6) 刷新两枚桌面组件
     TodoWidgetProvider.refresh(context)
     NotesWidgetProvider.refresh(context)
 
