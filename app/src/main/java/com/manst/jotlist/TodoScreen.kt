@@ -118,8 +118,21 @@ internal fun TodoAppScreen(
         val index = todoList.indexOfFirst { it.id == item.id }
         if (index >= 0) {
             cancelReminder(context, item)
+            val trashedPayload = captureTodoPayload(context, item.id)
             todoList.removeAt(index)
+            trashedPayload?.let { payload ->
+                appendTrash(
+                    context,
+                    TrashEntry(
+                        kind = TrashKind.TODO,
+                        id = item.id,
+                        payload = payload,
+                        deletedAt = System.currentTimeMillis()
+                    )
+                )
+            }
             offerUndo("已删除「${item.text}」") {
+                removeTrashEntry(context, TrashKind.TODO, item.id)
                 todoList.add(index.coerceIn(0, todoList.size), item)
                 // 删除时撤掉了提醒，撤销删除要把提醒排回去。
                 if (item.isDone) {
@@ -508,7 +521,20 @@ internal fun TodoAppScreen(
                 TextButton(
                     onClick = {
                         val cleared = todoList.filter { it.isDone }
-                        cleared.forEach { cancelReminder(context, it) }
+                        cleared.forEach { item ->
+                            cancelReminder(context, item)
+                            captureTodoPayload(context, item.id)?.let { payload ->
+                                appendTrash(
+                                    context,
+                                    TrashEntry(
+                                        kind = TrashKind.TODO,
+                                        id = item.id,
+                                        payload = payload,
+                                        deletedAt = System.currentTimeMillis()
+                                    )
+                                )
+                            }
+                        }
                         todoList.removeAll { it.isDone }
                         showClearConfirm = false
                         offerUndo("已清空 ${cleared.size} 条已完成") {

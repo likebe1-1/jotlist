@@ -331,6 +331,9 @@ internal fun NotesScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        // 删除前留一份原始 JSON，并记下被连累的待办关系
+                        val trashedPayload = captureNotePayload(context, note.id)
+                        val affectedTodoIds = todos.filter { it.linkedNoteId == note.id }.map { it.id }
                         notes.remove(note)
                         var todosChanged = false
                         todos.indices.forEach { index ->
@@ -344,6 +347,18 @@ internal fun NotesScreen(
                             TodoWidgetProvider.refresh(context)
                         }
                         pendingDelete = null
+                        trashedPayload?.let { payload ->
+                            appendTrash(
+                                context,
+                                TrashEntry(
+                                    kind = TrashKind.NOTE,
+                                    id = note.id,
+                                    payload = payload,
+                                    deletedAt = System.currentTimeMillis(),
+                                    affectedTodoIds = affectedTodoIds
+                                )
+                            )
+                        }
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error

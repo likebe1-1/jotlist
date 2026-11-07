@@ -104,3 +104,38 @@ internal fun pruneTrashNow(context: Context, now: Long = System.currentTimeMilli
     val kept = pruneTrash(entries, now)
     if (kept.size != entries.size) saveTrash(context, kept)
 }
+/** 笔记同样从原始 JSON 里取整条对象，避免二次序列化漂移。 */
+internal fun captureNotePayload(context: Context, noteId: Long): String? {
+    val json = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .getString(KEY_NOTES, null) ?: return null
+    return try {
+        val array = JSONArray(json)
+        for (index in 0 until array.length()) {
+            val item = array.optJSONObject(index) ?: continue
+            if (item.optLong("id", Long.MIN_VALUE) == noteId) return item.toString()
+        }
+        null
+    } catch (_: Exception) {
+        null
+    }
+}
+
+/**
+ * 从回收站恢复一条待办：写回主列表，并把悬空的 linkedNoteId / recurrenceNextId 清掉。
+ * 返回恢复后的对象（失败返回 null），同时把该条移出回收站。
+ */
+internal fun restoreTodo(context: Context, entry: TrashEntry): TodoItem? {
+    if (entry.kind != TrashKind.TODO) return null
+    val item = runCatching { todoFromJson(JSONObject(entry.payload)) }.getOrNull() ?: return null
+    val loaded = loadTodoList(context) as? TodoListLoadResult.Loaded ?: return null
+    if (loaded.items.any { it.id == item.id }) {
+        // 同 id 已在主列表里（比如恢复后又被同步回来），不重复插入
+        removeTrashEntry(context, TrashKind.TODO, entry.id)
+        return item
+    }
+    val noteIds = (loadNotes(context) as? NotesLoadResult.Loaded)
+        ?.items?.map { it.id }?.toSet().orEmpty()
+    saveTodoList(context, repairTodoReferences(loaded.items + item, noteIds))
+    removeTrashEntry(context, TrashKind.TODO, entry.id)
+    return item
+}
