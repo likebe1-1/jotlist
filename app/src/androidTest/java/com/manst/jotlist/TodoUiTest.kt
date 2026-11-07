@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -75,7 +76,7 @@ class TodoUiTest {
         val taskName = "UI test task ${System.nanoTime()}"
 
         composeRule.onNodeWithTag("add_task").performClick()
-        composeRule.onNodeWithText("任务内容").performTextInput(taskName)
+        composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
         composeRule.onNodeWithTag("save_task").performClick()
         composeRule.onNodeWithText(taskName).assertIsDisplayed()
 
@@ -94,7 +95,7 @@ class TodoUiTest {
         val taskName = "Pinned task ${System.nanoTime()}"
 
         composeRule.onNodeWithTag("add_task").performClick()
-        composeRule.onNodeWithText("任务内容").performTextInput(taskName)
+        composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
         composeRule.onNodeWithTag("pin_task").performClick()
         composeRule.onNodeWithTag("save_task").performClick()
 
@@ -107,11 +108,11 @@ class TodoUiTest {
         val taskName = "Recurring task ${System.nanoTime()}"
 
         composeRule.onNodeWithTag("add_task").performClick()
-        composeRule.onNodeWithText("任务内容").performTextInput(taskName)
-        composeRule.onNodeWithText("重复：不重复").performClick()
+        composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
+        composeRule.onNodeWithText("重复").performClick()
         composeRule.onNodeWithText("每天").performClick()
-        composeRule.onNodeWithText("添加步骤").performTextInput("First step")
-        composeRule.onNodeWithText("添加", substring = false).performClick()
+        composeRule.onNodeWithTag("subtask_input").performTextInput("First step")
+        composeRule.onNodeWithTag("subtask_input").performImeAction()
         composeRule.onNodeWithTag("save_task").performClick()
 
         composeRule.onNodeWithText("每天", substring = true).assertIsDisplayed()
@@ -149,7 +150,7 @@ class TodoUiTest {
     fun canPlanExistingTaskForCalendarDayAndPinItToToday() {
         val taskName = "Planned task ${System.nanoTime()}"
         composeRule.onNodeWithTag("add_task").performClick()
-        composeRule.onNodeWithText("任务内容").performTextInput(taskName)
+        composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
         composeRule.onNodeWithTag("save_task").performClick()
 
         composeRule.onNodeWithContentDescription("更多选项").performClick()
@@ -170,13 +171,15 @@ class TodoUiTest {
         composeRule.onNodeWithTag("add_note").performClick()
         composeRule.onNodeWithTag("note_title_editor").performTextInput(noteTitle)
         composeRule.onNodeWithTag("note_body_editor").performTextInput("Saved note content")
-        composeRule.onNodeWithText("标签（逗号分隔）").performTextInput("work, personal")
-        composeRule.onNodeWithTag("add_note_todo").performClick()
+        composeRule.onNodeWithTag("add_tag").performClick()
+        composeRule.onNodeWithText("标签名称").performTextInput("work")
+        composeRule.onNodeWithText("添加").performClick()
+        composeRule.onNodeWithTag("toolbar_todo").performClick()
         composeRule.onNodeWithTag("note_todo_text_0").performTextInput("Call back")
         composeRule.onNodeWithTag("save_note").performClick()
 
         composeRule.onNodeWithText(noteTitle).assertIsDisplayed()
-        composeRule.onNodeWithText("#work  #personal").assertIsDisplayed()
+        composeRule.onNodeWithText("#work").assertIsDisplayed()
         // 列表现在会带一行正文摘要。
         composeRule.onNodeWithText("Saved note content", substring = true).assertIsDisplayed()
         composeRule.onNodeWithText(noteTitle).performClick()
@@ -185,7 +188,7 @@ class TodoUiTest {
         composeRule.onNodeWithTag("note_more_options").performClick()
         composeRule.onNodeWithText("编辑").performClick()
         composeRule.onNodeWithTag("note_title_editor").assertIsDisplayed()
-        composeRule.onNodeWithText("取消").performClick()
+        composeRule.onNodeWithContentDescription("返回").performClick()
         composeRule.onNodeWithText("Saved note content").assertIsDisplayed()
         composeRule.onNodeWithTag("note_more_options").performClick()
         composeRule.onNodeWithText("转为待办").performClick()
@@ -224,7 +227,7 @@ class TodoUiTest {
         val taskTitle = "Search task $phrase"
 
         composeRule.onNodeWithTag("add_task").performClick()
-        composeRule.onNodeWithText("任务内容").performTextInput(taskTitle)
+        composeRule.onNodeWithTag("task_text_input").performTextInput(taskTitle)
         composeRule.onNodeWithTag("save_task").performClick()
         composeRule.onNodeWithText("笔记").performClick()
         composeRule.onNodeWithTag("add_note").performClick()
@@ -258,7 +261,7 @@ class TodoUiTest {
     fun canUnplanTaskFromCalendarDay() {
         val taskName = "Unplan task ${System.nanoTime()}"
         composeRule.onNodeWithTag("add_task").performClick()
-        composeRule.onNodeWithText("任务内容").performTextInput(taskName)
+        composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
         composeRule.onNodeWithTag("save_task").performClick()
 
         composeRule.onNodeWithContentDescription("更多选项").performClick()
@@ -276,7 +279,7 @@ class TodoUiTest {
     fun unplanIsReflectedWhenPickerReopens() {
         val taskName = "Unplan picker ${System.nanoTime()}"
         composeRule.onNodeWithTag("add_task").performClick()
-        composeRule.onNodeWithText("任务内容").performTextInput(taskName)
+        composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
         composeRule.onNodeWithTag("save_task").performClick()
 
         composeRule.onNodeWithContentDescription("更多选项").performClick()
@@ -340,7 +343,7 @@ class TodoUiTest {
     fun canPickTodayFocusTasks() {
         val taskName = "Focus task ${System.nanoTime()}"
         composeRule.onNodeWithTag("add_task").performClick()
-        composeRule.onNodeWithText("任务内容").performTextInput(taskName)
+        composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
         composeRule.onNodeWithTag("save_task").performClick()
 
         composeRule.onNodeWithTag("focus_pick").performClick()
@@ -357,7 +360,7 @@ class TodoUiTest {
     fun canSwitchListDensityFromSettings() {
         val taskName = "Density task ${System.nanoTime()}"
         composeRule.onNodeWithTag("add_task").performClick()
-        composeRule.onNodeWithText("任务内容").performTextInput(taskName)
+        composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
         composeRule.onNodeWithTag("save_task").performClick()
         composeRule.onNodeWithText(taskName).assertIsDisplayed()
 
@@ -377,9 +380,9 @@ class TodoUiTest {
         val taskName = "Subtask task ${System.nanoTime()}"
 
         composeRule.onNodeWithTag("add_task").performClick()
-        composeRule.onNodeWithText("任务内容").performTextInput(taskName)
-        composeRule.onNodeWithText("添加步骤").performTextInput("Step one")
-        composeRule.onNodeWithText("添加").performClick()
+        composeRule.onNodeWithTag("task_text_input").performTextInput(taskName)
+        composeRule.onNodeWithTag("subtask_input").performTextInput("First step")
+        composeRule.onNodeWithTag("subtask_input").performImeAction()
         composeRule.onNodeWithTag("save_task").performClick()
 
         composeRule.onAllNodesWithText(taskName).assertCountEquals(1)
@@ -405,21 +408,19 @@ class TodoUiTest {
         composeRule.onNodeWithTag("note_title_editor").performTextInput(noteTitle)
         composeRule.onNodeWithTag("note_body_editor")
             .performTextInput("# Markdown heading\n\n**Bold text**\n\n- List item")
-        composeRule.onNodeWithTag("markdown_note_toggle").performClick()
-        composeRule.onNodeWithText("知道了").performClick()
         composeRule.onNodeWithTag("note_format_help").performClick()
         composeRule.onNodeWithText("用工具轻松排版").assertIsDisplayed()
         composeRule.onNodeWithText("知道了").performClick()
-        composeRule.onNodeWithTag("note_format_标题").assertIsDisplayed()
-        composeRule.onNodeWithTag("note_format_加粗").assertIsDisplayed()
-        composeRule.onNodeWithTag("note_format_列表").assertIsDisplayed()
-        composeRule.onNodeWithTag("note_format_待办").assertIsDisplayed()
-        composeRule.onNodeWithTag("note_format_待办").performClick()
+        composeRule.onNodeWithTag("toolbar_0").assertIsDisplayed()
+        composeRule.onNodeWithTag("toolbar_1").assertIsDisplayed()
+        composeRule.onNodeWithTag("toolbar_2").assertIsDisplayed()
+        composeRule.onNodeWithTag("toolbar_todo").assertIsDisplayed()
+        composeRule.onNodeWithTag("toolbar_todo").performClick()
         composeRule.onNodeWithTag("note_todo_text_0").performTextInput("Review item")
         composeRule.onNodeWithText("Review item").assertIsDisplayed()
         composeRule.onNodeWithTag("markdown_preview_mode").performClick()
         composeRule.onNodeWithText("Markdown heading").assertIsDisplayed()
-        composeRule.onNodeWithTag("markdown_edit_mode").performClick()
+        composeRule.onNodeWithTag("markdown_preview_mode").performClick()
         composeRule.onNodeWithTag("save_note").performClick()
         composeRule.onAllNodesWithText("Markdown heading").assertCountEquals(0)
         composeRule.onNodeWithText(noteTitle).performClick()
