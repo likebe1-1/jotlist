@@ -27,6 +27,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,6 +42,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import android.app.TimePickerDialog
 
 /**
@@ -81,6 +84,7 @@ internal fun SettingsScreen(
     var paletteDialogVisible by remember { mutableStateOf(false) }
     var draftPalette by remember { mutableStateOf(readWidgetPalette(context)) }
     var appliedPalette by remember { mutableStateOf(readWidgetPalette(context)) }
+    var showTrash by remember { mutableStateOf(false) }
 
     fun applyDoNotDisturb(enabled: Boolean, start: Int, end: Int) {
         dndEnabled = enabled
@@ -261,6 +265,27 @@ internal fun SettingsScreen(
                     ) {
                         Text("结束 ${formatMinuteOfDay(dndEnd)}")
                     }
+                }
+            }
+        }
+
+        SettingsSection(title = "数据") {
+            SettingsRow(
+                title = "回收站",
+                value = "删除的待办和笔记保留 30 天",
+                actionLabel = "查看",
+                actionTestTag = "settings_trash",
+                onAction = { showTrash = true }
+            )
+        }
+
+        if (showTrash) {
+            Dialog(
+                onDismissRequest = { showTrash = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    TrashScreen(onBack = { showTrash = false })
                 }
             }
         }

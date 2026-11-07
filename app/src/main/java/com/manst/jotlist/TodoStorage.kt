@@ -213,6 +213,49 @@ internal fun loadTodoList(context: Context): TodoListLoadResult {
     }
 }
 
+/** 单条笔记 → JSON：主存储、回收站、备份共用。 */
+internal fun noteToJson(note: NoteItem): JSONObject = JSONObject().apply {
+    put("id", note.id)
+    put("title", note.title)
+    put("body", note.body)
+    put("updatedAt", note.updatedAt)
+    put("createdAt", note.createdAt)
+    put("isMarkdown", note.isMarkdown)
+    put("tags", JSONArray(note.tags))
+    put("embeddedTodos", JSONArray().apply {
+        note.embeddedTodos.forEach { embeddedTodo ->
+            put(JSONObject().apply {
+                put("id", embeddedTodo.id)
+                put("text", embeddedTodo.text)
+                put("isDone", embeddedTodo.isDone)
+            })
+        }
+    })
+}
+
+/** 单条笔记 ← JSON：解析规则与主存储完全一致。 */
+internal fun noteFromJson(item: JSONObject): NoteItem = NoteItem(
+    id = item.getLong("id"),
+    title = item.getString("title"),
+    body = item.getString("body"),
+    updatedAt = item.optLong("updatedAt", item.getLong("id")),
+    createdAt = item.optLong("createdAt", item.optLong("updatedAt", item.getLong("id"))),
+    tags = item.optJSONArray("tags")?.let { tags ->
+        List(tags.length()) { tagIndex -> tags.getString(tagIndex) }
+    }.orEmpty(),
+    embeddedTodos = item.optJSONArray("embeddedTodos")?.let { todos ->
+        List(todos.length()) { todoIndex ->
+            val embeddedTodo = todos.getJSONObject(todoIndex)
+            NoteInlineTodo(
+                id = embeddedTodo.optLong("id", nextTodoId()),
+                text = embeddedTodo.getString("text"),
+                isDone = embeddedTodo.optBoolean("isDone", false)
+            )
+        }
+    }.orEmpty(),
+    isMarkdown = item.optBoolean("isMarkdown", false)
+)
+
 internal fun loadNotes(context: Context): NotesLoadResult {
     val json = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .getString(KEY_NOTES, null) ?: return NotesLoadResult.Loaded(emptyList())
@@ -221,31 +264,7 @@ internal fun loadNotes(context: Context): NotesLoadResult {
         val array = JSONArray(json)
         NotesLoadResult.Loaded(
             List(array.length()) { index ->
-                val item = array.getJSONObject(index)
-                NoteItem(
-                    id = item.getLong("id"),
-                    title = item.getString("title"),
-                    body = item.getString("body"),
-                    updatedAt = item.optLong("updatedAt", item.getLong("id")),
-                    createdAt = item.optLong(
-                        "createdAt",
-                        item.optLong("updatedAt", item.getLong("id"))
-                    ),
-                    tags = item.optJSONArray("tags")?.let { tags ->
-                        List(tags.length()) { tagIndex -> tags.getString(tagIndex) }
-                    }.orEmpty(),
-                    embeddedTodos = item.optJSONArray("embeddedTodos")?.let { todos ->
-                        List(todos.length()) { todoIndex ->
-                            val embeddedTodo = todos.getJSONObject(todoIndex)
-                            NoteInlineTodo(
-                                id = embeddedTodo.optLong("id", nextTodoId()),
-                                text = embeddedTodo.getString("text"),
-                                isDone = embeddedTodo.optBoolean("isDone", false)
-                            )
-                        }
-                    }.orEmpty(),
-                    isMarkdown = item.optBoolean("isMarkdown", false)
-                )
+                noteFromJson(array.getJSONObject(index))
             }
         )
     } catch (_: Exception) {
@@ -256,26 +275,7 @@ internal fun loadNotes(context: Context): NotesLoadResult {
 internal fun saveNotes(context: Context, notes: List<NoteItem>) {
     val array = JSONArray()
     notes.forEach { note ->
-        array.put(
-            JSONObject().apply {
-                put("id", note.id)
-                put("title", note.title)
-                put("body", note.body)
-                put("updatedAt", note.updatedAt)
-                put("createdAt", note.createdAt)
-                put("isMarkdown", note.isMarkdown)
-                put("tags", JSONArray(note.tags))
-                put("embeddedTodos", JSONArray().apply {
-                    note.embeddedTodos.forEach { embeddedTodo ->
-                        put(JSONObject().apply {
-                            put("id", embeddedTodo.id)
-                            put("text", embeddedTodo.text)
-                            put("isDone", embeddedTodo.isDone)
-                        })
-                    }
-                })
-            }
-        )
+        array.put(noteToJson(note))
     }
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .edit()

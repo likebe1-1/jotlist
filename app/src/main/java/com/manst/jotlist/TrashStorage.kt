@@ -139,3 +139,31 @@ internal fun restoreTodo(context: Context, entry: TrashEntry): TodoItem? {
     removeTrashEntry(context, TrashKind.TODO, entry.id)
     return item
 }
+/**
+ * 从回收站恢复一篇笔记：写回笔记列表，并把删除时被清空的待办关系补回去。
+ * 补链后统一做一次悬空引用体检。
+ */
+internal fun restoreNote(context: Context, entry: TrashEntry): NoteItem? {
+    if (entry.kind != TrashKind.NOTE) return null
+    val note = runCatching { noteFromJson(JSONObject(entry.payload)) }.getOrNull() ?: return null
+    val loadedNotes = loadNotes(context) as? NotesLoadResult.Loaded ?: return null
+    if (loadedNotes.items.none { it.id == note.id }) {
+        saveNotes(context, loadedNotes.items + note)
+    }
+    if (entry.affectedTodoIds.isNotEmpty()) {
+        val todos = (loadTodoList(context) as? TodoListLoadResult.Loaded)?.items.orEmpty()
+        if (todos.isNotEmpty()) {
+            val relinked = relinkTodos(todos, note.id, entry.affectedTodoIds)
+            val noteIds = (loadNotes(context) as? NotesLoadResult.Loaded)
+                ?.items?.map { it.id }?.toSet().orEmpty()
+            saveTodoList(context, repairTodoReferences(relinked, noteIds))
+        }
+    }
+    removeTrashEntry(context, TrashKind.NOTE, entry.id)
+    return note
+}
+
+/** 永久删除一条（用户主动清空，不走 30 天）。 */
+internal fun purgeTrashEntry(context: Context, entry: TrashEntry) {
+    removeTrashEntry(context, entry.kind, entry.id)
+}
