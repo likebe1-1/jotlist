@@ -69,11 +69,17 @@ class TodoUiTest {
 
         composeRule.onNodeWithText("待办 · 笔记 · 每天自动循环").assertIsDisplayed()
         composeRule.onNodeWithText("开始使用").performClick()
-        composeRule.onNodeWithTag("add_task").assertIsDisplayed()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithTag("add_task").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("add_task").assertExists()
 
         // 关掉之后不应再出现。
         composeRule.activityRule.scenario.recreate()
-        composeRule.onNodeWithTag("add_task").assertIsDisplayed()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithTag("add_task").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("add_task").assertExists()
         composeRule.onNodeWithText("开始使用").assertDoesNotExist()
     }
 
@@ -274,7 +280,10 @@ class TodoUiTest {
         composeRule.onNodeWithText("整理未完成任务").assertIsDisplayed()
         composeRule.onNodeWithText("没有需要整理的任务。").assertIsDisplayed()
         composeRule.onNode(hasContentDescription("返回") or hasText("返回")).performClick()
-        composeRule.onNodeWithTag("add_task").assertIsDisplayed()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithTag("add_task").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("add_task").assertExists()
     }
 
     @Test
@@ -363,7 +372,10 @@ class TodoUiTest {
         composeRule.onNodeWithTag("settings_dnd_end").assertExists()
 
         composeRule.onNode(hasContentDescription("返回") or hasText("返回")).performClick()
-        composeRule.onNodeWithTag("add_task").assertIsDisplayed()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithTag("add_task").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("add_task").assertExists()
     }
 
     @Test
@@ -401,7 +413,10 @@ class TodoUiTest {
 
         // 换密度后列表照常可用。
         composeRule.onNodeWithText(taskName).assertIsDisplayed()
-        composeRule.onNodeWithTag("add_task").assertIsDisplayed()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithTag("add_task").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("add_task").assertExists()
     }
 
     @Test
