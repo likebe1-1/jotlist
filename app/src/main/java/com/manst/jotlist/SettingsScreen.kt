@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -87,6 +88,7 @@ internal fun SettingsScreen(
     var draftPalette by remember { mutableStateOf(readWidgetPalette(context)) }
     var appliedPalette by remember { mutableStateOf(readWidgetPalette(context)) }
     var showTrash by remember { mutableStateOf(false) }
+    var pendingRestoreRaw by remember { mutableStateOf<String?>(null) }
     var backupMessage by remember { mutableStateOf<String?>(null) }
     var lastBackup by remember { mutableStateOf(lastBackupAt(context)) }
     var snapshotAt by remember { mutableStateOf(latestSnapshotAt(context)) }
@@ -115,15 +117,11 @@ internal fun SettingsScreen(
     ) { uri ->
         if (uri != null) {
             runCatching {
-                val raw = context.contentResolver.openInputStream(uri)
+                context.contentResolver.openInputStream(uri)
                     ?.bufferedReader()?.use { it.readText() } ?: error("无法读取文件")
-                restoreBackupJson(context, raw)
-            }.onSuccess { outcome ->
-                backupMessage = when (outcome) {
-                    is RestoreOutcome.Success ->
-                        "已恢复 ${outcome.summary.todos} 条待办、${outcome.summary.notes} 篇笔记"
-                    is RestoreOutcome.Failed -> "恢复失败：${outcome.message}"
-                }
+            }.onSuccess { raw ->
+                // 先确认再覆盖：恢复是整体替换，误点一次代价太大
+                pendingRestoreRaw = raw
             }.onFailure { backupMessage = "恢复失败：${it.message}" }
         }
     }
@@ -371,6 +369,40 @@ internal fun SettingsScreen(
                 )
             }
         }
+
+    pendingRestoreRaw?.let { raw ->
+        AlertDialog(
+            onDismissRequest = { pendingRestoreRaw = null },
+            title = { Text("恢复这份备份？") },
+            text = { Text("当前所有待办与笔记会被替换，替换前会自动留一份快照（可在「从上一版恢复」里找回）。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val result = runCatching { restoreBackupJson(context, raw) }.getOrNull()
+                        backupMessage = when (result) {
+                            is RestoreOutcome.Success ->
+                                "已恢复 ${result.summary.todos} 条待办、${result.summary.notes} 篇笔记"
+                            is RestoreOutcome.Failed -> "恢复失败：${result.message}"
+                            null -> "恢复失败：文件内容异常"
+                        }
+                        lastBackup = lastBackupAt(context)
+                        snapshotAt = latestSnapshotAt(context)
+                        pendingRestoreRaw = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier.testTag("restore_confirm")
+                ) { Text("替换并恢复") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { pendingRestoreRaw = null },
+                    modifier = Modifier.testTag("restore_cancel")
+                ) { Text("取消") }
+            }
+        )
+    }
 
         if (showTrash) {
             Dialog(

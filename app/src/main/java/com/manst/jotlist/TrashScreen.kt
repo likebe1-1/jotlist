@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +40,7 @@ internal fun TrashScreen(
 ) {
     val context = LocalContext.current
     var entries by remember { mutableStateOf(loadTrash(context)) }
+    var showClearConfirm by remember { mutableStateOf(false) }
 
     fun reload() {
         entries = loadTrash(context)
@@ -53,10 +56,7 @@ internal fun TrashScreen(
         JotlistHeader(title = "回收站", onBack = onBack) {
             if (entries.isNotEmpty()) {
                 TextButton(
-                    onClick = {
-                        saveTrash(context, emptyList())
-                        reload()
-                    },
+                    onClick = { showClearConfirm = true },
                     modifier = Modifier.testTag("trash_clear_all")
                 ) { Text("清空") }
             }
@@ -76,6 +76,30 @@ internal fun TrashScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp)
         )
+
+        if (showClearConfirm) {
+            AlertDialog(
+                onDismissRequest = { showClearConfirm = false },
+                title = { Text("清空回收站？") },
+                text = { Text("回收站里的 ${entries.size} 条记录将被永久删除，无法恢复。") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            saveTrash(context, emptyList())
+                            showClearConfirm = false
+                            reload()
+                        },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.testTag("trash_clear_confirm")
+                    ) { Text("永久清空") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showClearConfirm = false }) { Text("取消") }
+                }
+            )
+        }
 
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
