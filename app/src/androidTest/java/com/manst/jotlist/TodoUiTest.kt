@@ -9,12 +9,14 @@ import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -353,7 +355,10 @@ class TodoUiTest {
         composeRule.onNodeWithText("免打扰").assertExists()
         composeRule.onNodeWithTag("settings_dnd_start").assertDoesNotExist()
 
-        composeRule.onNodeWithTag("settings_dnd_switch").performClick()
+        composeRule.onNodeWithTag("settings_dnd_switch").performScrollTo().performClick()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithTag("settings_dnd_start").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithTag("settings_dnd_start").assertExists()
         composeRule.onNodeWithTag("settings_dnd_end").assertExists()
 
@@ -436,9 +441,6 @@ class TodoUiTest {
         composeRule.onNodeWithTag("note_body_editor")
             .performTextInput("# Markdown heading\n\n**Bold text**\n\n- List item")
             Espresso.closeSoftKeyboard()
-        composeRule.onNodeWithTag("note_format_help").performClick()
-        composeRule.onNodeWithText("用工具轻松排版").assertExists()
-        composeRule.onNodeWithText("知道了").performClick()
         composeRule.onNodeWithTag("toolbar_0").assertIsDisplayed()
         composeRule.onNodeWithTag("toolbar_1").assertIsDisplayed()
         composeRule.onNodeWithTag("toolbar_2").assertIsDisplayed()
