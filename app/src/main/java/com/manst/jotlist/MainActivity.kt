@@ -156,7 +156,9 @@ class MainActivity : ComponentActivity() {
                     ) { page ->
                         when (page) {
                             MainDestination.TODO -> TodoAppScreen(
-                                modifier = Modifier.padding(innerPadding),
+                                modifier = Modifier
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding),
                                 appearanceMode = appearanceMode,
                                 density = uiDensity,
                                 snackbarHostState = snackbarHostState,
@@ -179,7 +181,9 @@ class MainActivity : ComponentActivity() {
                                 onEditorVisibilityChange = { noteEditorVisible = it }
                             )
                             MainDestination.NOTES -> NotesScreen(
-                                modifier = Modifier.padding(innerPadding),
+                                modifier = Modifier
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding),
                                 initialOpenQuickCapture = pendingQuickCapture,
                                 onInitialQuickCaptureConsumed = { pendingQuickCapture = false },
                                 onEditorVisibilityChange = { noteEditorVisible = it },
@@ -209,7 +213,9 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                             MainDestination.SEARCH -> UnifiedSearchScreen(
-                                modifier = Modifier.padding(innerPadding),
+                                modifier = Modifier
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding),
                                 onOpenTodo = { todoId ->
                                     requestedTodoId = todoId
                                     destination = MainDestination.TODO

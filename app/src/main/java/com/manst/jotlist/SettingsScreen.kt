@@ -83,7 +83,6 @@ internal fun SettingsScreen(
     val onChanged = rememberUpdatedState(onDoNotDisturbChanged)
 
     // 右上角三点菜单：组件配色
-    var menuExpanded by remember { mutableStateOf(false) }
     var paletteDialogVisible by remember { mutableStateOf(false) }
     var draftPalette by remember { mutableStateOf(readWidgetPalette(context)) }
     var appliedPalette by remember { mutableStateOf(readWidgetPalette(context)) }
@@ -177,33 +176,7 @@ internal fun SettingsScreen(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        JotlistHeader(title = "设置", onBack = onBack) {
-            Box {
-                IconButton(
-                    onClick = {
-                        draftPalette = appliedPalette
-                        menuExpanded = true
-                    },
-                    modifier = Modifier.testTag("settings_more")
-                ) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = "更多设置")
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("组件配色") },
-                        onClick = {
-                            menuExpanded = false
-                            draftPalette = appliedPalette
-                            paletteDialogVisible = true
-                        },
-                        modifier = Modifier.testTag("settings_widget_palette")
-                    )
-                }
-            }
-        }
+        JotlistHeader(title = "设置", onBack = onBack)
 
         SettingsSection(title = "外观") {
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
@@ -258,6 +231,16 @@ internal fun SettingsScreen(
                     }
                 }
             }
+            SettingsRow(
+                title = "组件配色",
+                value = "只影响桌面小组件，App 内配色不变",
+                actionLabel = "切换",
+                actionTestTag = "settings_widget_palette",
+                onAction = {
+                    draftPalette = appliedPalette
+                    paletteDialogVisible = true
+                }
+            )
         }
 
         SettingsSection(title = "通知与提醒") {
@@ -336,7 +319,8 @@ internal fun SettingsScreen(
             }
         }
 
-        SettingsSection(title = "数据") {
+
+        SettingsSection(title = "备份与恢复") {
             SettingsRow(
                 title = "回收站",
                 value = "删除的待办和笔记保留 30 天",
@@ -344,9 +328,6 @@ internal fun SettingsScreen(
                 actionTestTag = "settings_trash",
                 onAction = { showTrash = true }
             )
-        }
-
-        SettingsSection(title = "备份与恢复") {
             SettingsRow(
                 title = "导出备份",
                 value = if (lastBackup > 0) {
@@ -500,7 +481,7 @@ internal fun SettingsScreen(
 
         SettingsSection(title = "关于") {
             Text(
-                "${context.getString(R.string.app_name)} ${versionName.ifBlank { "5.0" }}",
+                "${context.getString(R.string.app_name)} ${versionName.ifBlank { com.manst.jotlist.BuildConfig.VERSION_NAME }}",
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(

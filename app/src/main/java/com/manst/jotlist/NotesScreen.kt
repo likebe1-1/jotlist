@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -34,6 +35,10 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.FormatBold
+import androidx.compose.material.icons.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.Title
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.testTag
@@ -681,6 +686,13 @@ internal fun NoteEditorScreen(
     val tags = remember(initialNote?.id) {
         mutableStateListOf<String>().apply { addAll(initialNote?.tags.orEmpty()) }
     }
+    var removedTag by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(removedTag) {
+        if (removedTag != null) {
+            kotlinx.coroutines.delay(4_000)
+            removedTag = null
+        }
+    }
     val embeddedTodos = remember(initialNote?.id) {
         mutableStateListOf<NoteInlineTodo>().apply {
             addAll(initialNote?.embeddedTodos.orEmpty())
@@ -1014,8 +1026,18 @@ internal fun NoteEditorScreen(
                 tags.forEach { tag ->
                     InputChip(
                         selected = false,
-                        onClick = { tags.remove(tag) },
-                        label = { Text("#$tag", style = MaterialTheme.typography.labelMedium) }
+                        onClick = {
+                            removedTag = tag
+                            tags.remove(tag)
+                        },
+                        label = { Text("#$tag", style = MaterialTheme.typography.labelMedium) },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "删除标签#$tag",
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
                     )
                 }
                 AssistChip(
@@ -1023,6 +1045,22 @@ internal fun NoteEditorScreen(
                     modifier = Modifier.testTag("add_tag"),
                     label = { Text("＋", style = MaterialTheme.typography.labelMedium) }
                 )
+            }
+            removedTag?.let { tag ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "已删除 #$tag",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(
+                        onClick = {
+                            if (tag !in tags) tags.add(tag)
+                            removedTag = null
+                        },
+                        modifier = Modifier.testTag("tag_undo")
+                    ) { Text("撤销") }
+                }
             }
             HorizontalDivider(
                 modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
@@ -1122,54 +1160,66 @@ internal fun NoteEditorScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 52.dp),
+                .heightIn(min = 52.dp)
+                .testTag("note_toolbar"),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            listOf(
-                "H" to { bodyField = applyNoteFormat(bodyField, "# ") },
-                "B" to { bodyField = applyNoteFormat(bodyField, "**", "**") },
-                "•" to { bodyField = applyNoteFormat(bodyField, "- ") }
-            ).forEachIndexed { index, (label, action) ->
-                TextButton(
-                    onClick = {
-                        isMarkdown = true
-                        markdownPreviewVisible = false
-                        action()
-                    },
-                    modifier = Modifier.testTag("toolbar_$index")
-                ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.titleMedium
-                    )
+            ToolbarIcon(
+                icon = Icons.Default.Title,
+                description = "插入标题",
+                tag = "toolbar_0",
+                onClick = {
+                    isMarkdown = true
+                    markdownPreviewVisible = false
+                    bodyField = applyNoteFormat(bodyField, "# ")
                 }
-            }
-            TextButton(
+            )
+            ToolbarIcon(
+                icon = Icons.Default.FormatBold,
+                description = "加粗",
+                tag = "toolbar_1",
+                onClick = {
+                    isMarkdown = true
+                    markdownPreviewVisible = false
+                    bodyField = applyNoteFormat(bodyField, "**", "**")
+                }
+            )
+            ToolbarIcon(
+                icon = Icons.Default.FormatListBulleted,
+                description = "插入列表",
+                tag = "toolbar_2",
+                onClick = {
+                    isMarkdown = true
+                    markdownPreviewVisible = false
+                    bodyField = applyNoteFormat(bodyField, "- ")
+                }
+            )
+            ToolbarIcon(
+                icon = Icons.Default.CheckCircle,
+                description = "插入待办",
+                tag = "toolbar_todo",
                 onClick = {
                     isMarkdown = true
                     embeddedTodos.add(NoteInlineTodo(text = ""))
-                },
-                modifier = Modifier.testTag("toolbar_todo")
-            ) {
-                Icon(Icons.Default.CheckCircle, contentDescription = "插入待办")
-            }
+                }
+            )
             Spacer(Modifier.weight(1f))
-            TextButton(
+            ToolbarIcon(
+                icon = if (markdownPreviewVisible) Icons.Default.Edit else Icons.Default.Visibility,
+                description = if (markdownPreviewVisible) "编辑" else "预览",
+                tag = "markdown_preview_mode",
                 onClick = {
                     if (!markdownPreviewVisible && !isMarkdown) isMarkdown = true
                     markdownPreviewVisible = !markdownPreviewVisible
-                },
-                modifier = Modifier.testTag("markdown_preview_mode")
-            ) {
-                Text(if (markdownPreviewVisible) "编辑" else "预览")
-            }
-            IconButton(
-                onClick = { showFormatHelp = true },
-                modifier = Modifier.testTag("note_format_help")
-            ) {
-                Icon(Icons.Default.HelpOutline, contentDescription = "排版说明")
-            }
+                }
+            )
+            ToolbarIcon(
+                icon = Icons.Default.HelpOutline,
+                description = "排版说明",
+                tag = "note_format_help",
+                onClick = { showFormatHelp = true }
+            )
         }
     }
 }
@@ -1209,10 +1259,7 @@ internal fun DailyReviewPage(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("返回") }
-            Text("今日小结", style = MaterialTheme.typography.headlineSmall)
-        }
+        JotlistHeader(title = "今日小结", onBack = onBack)
         Text(
             formatReminderDate(now),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1363,10 +1410,7 @@ internal fun ActivityTimelinePage(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("返回") }
-            Text("时间线", style = MaterialTheme.typography.headlineSmall)
-        }
+        JotlistHeader(title = "时间线", onBack = onBack)
         if (todoLoadWarning) {
             Text("待办数据无法读取，时间线可能不完整。", color = MaterialTheme.colorScheme.error)
         }
@@ -1648,12 +1692,7 @@ internal fun NoteDetailScreen(
             .fillMaxSize()
             .padding(horizontal = 20.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            TextButton(onClick = onBack) { Text("返回") }
+        JotlistHeader(title = "", onBack = onBack) {
             Box {
                 IconButton(
                     onClick = { menuExpanded = true },
@@ -1692,7 +1731,7 @@ internal fun NoteDetailScreen(
                     )
                 }
             }
-        }
+            }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -1812,5 +1851,26 @@ internal fun NoteDetailScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ToolbarIcon(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    description: String,
+    tag: String,
+    onClick: () -> Unit
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(44.dp)
+            .testTag(tag)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            modifier = Modifier.size(22.dp)
+        )
     }
 }

@@ -1249,10 +1249,7 @@ internal fun CalendarTodoPage(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("返回") }
-            Text("日历", style = MaterialTheme.typography.headlineSmall)
-        }
+        JotlistHeader(title = "日历", onBack = onBack)
         OutlinedButton(
             onClick = {
                 DatePickerDialog(
@@ -1442,10 +1439,7 @@ internal fun CompletionStatisticsPage(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("返回") }
-            Text("完成统计", style = MaterialTheme.typography.headlineSmall)
-        }
+        JotlistHeader(title = "完成统计", onBack = onBack)
         if (historyWarning) {
             Text(
                 "完成记录暂时无法读取，统计可能不完整。",
@@ -1472,10 +1466,7 @@ internal fun DailyTaskReviewPage(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("返回") }
-            Text("整理未完成任务", style = MaterialTheme.typography.headlineSmall)
-        }
+        JotlistHeader(title = "整理未完成任务", onBack = onBack)
         Text(
             "把逾期、搁置多日或今天到期的任务重新安排，暂时不处理的会在明天再次出现。",
             style = MaterialTheme.typography.bodyMedium,
