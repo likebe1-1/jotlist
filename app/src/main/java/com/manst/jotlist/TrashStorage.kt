@@ -131,17 +131,31 @@ internal fun restoreTodo(context: Context, entry: TrashEntry): TodoItem? {
     if (loaded.items.any { it.id == item.id }) {
         // 同 id 已在主列表里（比如恢复后又被同步回来），不重复插入
         removeTrashEntry(context, TrashKind.TODO, entry.id)
+        notifyTodoDataChanged(context)
         return item
     }
-    val noteIds = (loadNotes(context) as? NotesLoadResult.Loaded)
-        ?.items?.map { it.id }?.toSet().orEmpty()
-    saveTodoList(context, repairTodoReferences(loaded.items + item, noteIds))
-    // 恢复后要把提醒排回去，否则这条任务的闹钟永远不会响
+    val notesLoaded = loadNotes(context) as? NotesLoadResult.Loaded
+    val merged = loaded.items + item
+    // 笔记读取失败时不做引用体检：拿空 noteIds 去修会清空所有任务的 linkedNoteId，
+    // 把「一篇笔记坏掉」放大成「全部任务掉链」。
+    val repaired = if (notesLoaded != null) {
+        repairTodoReferences(merged, notesLoaded.items.map { it.id }.toSet())
+    } else {
+        merged
+    }
+    saveTodoList(context, repaired)
+    reserveLoadedTodoIds(repaired)
+    // 恢复后要把提醒排回去，否则这条任务的闹钟永远不会响；
+    // 已完成的重复任务还有「下一次自动恢复」闹钟，也要一起排。
     if (!item.isDone) scheduleReminder(context, item)
+    item.resetAt?.let { scheduleResetReminder(context, item) }
     removeTrashEntry(context, TrashKind.TODO, entry.id)
     TodoWidgetProvider.refresh(context)
+    // 前台列表还停在恢复前的内存态：不通知重载的话，下一次自动保存会把刚恢复的条目再删掉。
+    notifyTodoDataChanged(context)
     return item
 }
+
 /**
  * 从回收站恢复一篇笔记：写回笔记列表，并把删除时被清空的待办关系补回去。
  * 补链后统一做一次悬空引用体检。
@@ -152,6 +166,7 @@ internal fun restoreNote(context: Context, entry: TrashEntry): NoteItem? {
     val loadedNotes = loadNotes(context) as? NotesLoadResult.Loaded ?: return null
     if (loadedNotes.items.none { it.id == note.id }) {
         saveNotes(context, loadedNotes.items + note)
+        reserveLoadedNoteIds(loadedNotes.items + note)
     }
     if (entry.affectedTodoIds.isNotEmpty()) {
         val todos = (loadTodoList(context) as? TodoListLoadResult.Loaded)?.items.orEmpty()
@@ -164,6 +179,8 @@ internal fun restoreNote(context: Context, entry: TrashEntry): NoteItem? {
     }
     removeTrashEntry(context, TrashKind.NOTE, entry.id)
     NotesWidgetProvider.refresh(context)
+    // 笔记列表可能还停在内存态，恢复后同样通知一次重载。
+    notifyTodoDataChanged(context)
     return note
 }
 

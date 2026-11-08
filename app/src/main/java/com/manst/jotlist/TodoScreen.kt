@@ -131,6 +131,8 @@ internal fun TodoAppScreen(
                     )
                 )
             }
+            // 任务已删除：残留草稿会在「回收站恢复」后弹出误导性的「恢复上次的草稿？」
+            clearEditorDraft(context, taskDraftKey(item.id))
             offerUndo("已删除「${item.text}」") {
                 removeTrashEntry(context, TrashKind.TODO, item.id)
                 todoList.add(index.coerceIn(0, todoList.size), item)
@@ -161,6 +163,10 @@ internal fun TodoAppScreen(
     // 不会出现"做完一条又多一条"的观感。"已完成"筛选里依然可以回看。
     var filter by rememberSaveable { mutableStateOf(TodoFilter.ACTIVE) }
     var categoryFilter by rememberSaveable { mutableStateOf<String?>(null) }
+    // 切换筛选/分类后列表长度会变，共享滚动状态会停在新列表的最后一条；回到顶部更符合预期。
+    LaunchedEffect(filter, categoryFilter) {
+        if (todoListState.firstVisibleItemIndex > 0) todoListState.scrollToItem(0)
+    }
     var highlightedTodoId by remember { mutableStateOf<Long?>(null) }
     val triageDismissedDay = LocalDate.now().toString()
     // 关掉后当天不再出现（之前是普通 remember，切个 Tab 界面重建就又冒出来）。
@@ -499,6 +505,7 @@ internal fun TodoAppScreen(
                         val cleared = todoList.filter { it.isDone }
                         cleared.forEach { item ->
                             cancelReminder(context, item)
+                            clearEditorDraft(context, taskDraftKey(item.id))
                             captureTodoPayload(context, item.id)?.let { payload ->
                                 appendTrash(
                                     context,
@@ -515,8 +522,9 @@ internal fun TodoAppScreen(
                         showClearConfirm = false
                         offerUndo("已清空 ${cleared.size} 条已完成") {
                             todoList.addAll(cleared)
-                            // 清空时撤掉了提醒，撤销后给重复任务把「下次恢复」闹钟排回去。
                             cleared.forEach { item ->
+                                // 撤销后这些任务还留在列表里，回收站里的副本必须同步移除
+                                removeTrashEntry(context, TrashKind.TODO, item.id)
                                 item.resetAt?.let { scheduleResetReminder(context, item) }
                             }
                         }
@@ -1865,7 +1873,8 @@ internal fun TodoEditorScreen(
             text.isNotBlank() || subtasks.isNotEmpty() ||
                 dueAtMillis > 0L || category.isNotBlank()
         } else {
-            text != initialItem.text || category != initialItem.category ||
+            // 保存时会 trim 标题/分类，这里同步按 trim 比较，纯空白差异不算草稿/未保存修改
+            text.trim() != initialItem.text || category.trim() != initialItem.category ||
                 priority != initialItem.priority ||
                 dueAtMillis != (initialItem.dueAt ?: 0L) ||
                 reminderMinutesBefore != initialItem.reminderMinutesBefore ||
@@ -1906,8 +1915,9 @@ internal fun TodoEditorScreen(
     val dirty = if (initialItem == null) {
         text.isNotBlank() || category.isNotBlank() || subtasks.isNotEmpty() || dueAtMillis > 0L
     } else {
-        text != initialItem.text ||
-            category != initialItem.category ||
+        // 与保存逻辑一致：trim 后比较
+        text.trim() != initialItem.text ||
+            category.trim() != initialItem.category ||
             priority != initialItem.priority ||
             dueAtMillis != (initialItem.dueAt ?: 0L) ||
             reminderMinutesBefore != initialItem.reminderMinutesBefore ||

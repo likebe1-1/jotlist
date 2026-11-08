@@ -92,6 +92,8 @@ internal fun SettingsScreen(
     var backupMessage by remember { mutableStateOf<String?>(null) }
     var lastBackup by remember { mutableStateOf(lastBackupAt(context)) }
     var snapshotAt by remember { mutableStateOf(latestSnapshotAt(context)) }
+    var showSnapshotConfirm by remember { mutableStateOf(false) }
+    var canUndoRestore by remember { mutableStateOf(hasPreRestoreSnapshot(context)) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -117,8 +119,21 @@ internal fun SettingsScreen(
     ) { uri ->
         if (uri != null) {
             runCatching {
-                context.contentResolver.openInputStream(uri)
-                    ?.bufferedReader()?.use { it.readText() } ?: error("无法读取文件")
+                val input = context.contentResolver.openInputStream(uri) ?: error("无法读取文件")
+                val maxChars = 8 * 1024 * 1024
+                input.bufferedReader().use { reader ->
+                    val builder = StringBuilder()
+                    val buffer = CharArray(8192)
+                    var total = 0
+                    while (true) {
+                        val read = reader.read(buffer)
+                        if (read < 0) break
+                        total += read
+                        if (total > maxChars) error("备份文件过大（超过 8MB）")
+                        builder.append(buffer, 0, read)
+                    }
+                    builder.toString()
+                }
             }.onSuccess { raw ->
                 // 先确认再覆盖：恢复是整体替换，误点一次代价太大
                 pendingRestoreRaw = raw
@@ -141,6 +156,18 @@ internal fun SettingsScreen(
             current % 60,
             true
         ).show()
+    }
+
+    /** 恢复备份/快照会替换外观、免打扰等设置：把页面状态和主题回调一起刷新，避免还显示旧值。 */
+    fun refreshAfterDataReplace() {
+        val restoredDnd = readDoNotDisturb(context)
+        dndEnabled = restoredDnd.enabled
+        dndStart = restoredDnd.startMinute
+        dndEnd = restoredDnd.endMinute
+        onAppearanceChange(readAppearance(context))
+        onDensityChange(readUiDensity(context))
+        snapshotAt = latestSnapshotAt(context)
+        lastBackup = lastBackupAt(context)
     }
 
     Column(
@@ -352,13 +379,12 @@ internal fun SettingsScreen(
                 actionLabel = "回退",
                 actionTestTag = "settings_snapshot_restore",
                 onAction = {
-                    backupMessage = when (val outcome = restoreLatestSnapshot(context)) {
-                        is RestoreOutcome.Success ->
-                            "已回退到快照：${outcome.summary.todos} 条待办、${outcome.summary.notes} 篇笔记"
-                        is RestoreOutcome.Failed -> "回退失败：${outcome.message}"
+                    // 从快照恢复同样是破坏性操作：不能一点就换掉当前数据
+                    if (snapshotAt <= 0L) {
+                        backupMessage = "还没有可用的快照"
+                    } else {
+                        showSnapshotConfirm = true
                     }
-                    snapshotAt = latestSnapshotAt(context)
-                    lastBackup = lastBackupAt(context)
                 }
             )
             backupMessage?.let { message ->
@@ -368,13 +394,70 @@ internal fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            if (canUndoRestore) {
+                TextButton(
+                    onClick = {
+                        backupMessage = when (val outcome = restorePreRestoreSnapshot(context)) {
+                            is RestoreOutcome.Success ->
+                                "已撤销上次恢复：${outcome.summary.todos} 条待办、${outcome.summary.notes} 篇笔记"
+                            is RestoreOutcome.Failed -> "撤销失败：${outcome.message}"
+                        }
+                        canUndoRestore = hasPreRestoreSnapshot(context)
+                        refreshAfterDataReplace()
+                    },
+                    modifier = Modifier.testTag("settings_undo_restore")
+                ) { Text("撤销这次恢复") }
+            }
         }
+
+    if (showSnapshotConfirm) {
+        AlertDialog(
+            onDismissRequest = { showSnapshotConfirm = false },
+            title = { Text("从上一版恢复？") },
+            text = {
+                Text(
+                    "会用 ${backupDateLabel(snapshotAt)} 的自动快照整体替换当前待办、笔记与设置" +
+                        "（回收站会清空）；回退前的状态可以通过「撤销这次恢复」找回。"
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showSnapshotConfirm = false
+                        val snapshotOutcome = restoreLatestSnapshot(context)
+                        backupMessage = when (snapshotOutcome) {
+                            is RestoreOutcome.Success ->
+                                "已回退到快照：${snapshotOutcome.summary.todos} 条待办、${snapshotOutcome.summary.notes} 篇笔记"
+                            is RestoreOutcome.Failed -> "回退失败：${snapshotOutcome.message}"
+                        }
+                        canUndoRestore = snapshotOutcome is RestoreOutcome.Success
+                        refreshAfterDataReplace()
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier.testTag("snapshot_restore_confirm")
+                ) { Text("回退") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showSnapshotConfirm = false },
+                    modifier = Modifier.testTag("snapshot_restore_cancel")
+                ) { Text("取消") }
+            }
+        )
+    }
 
     pendingRestoreRaw?.let { raw ->
         AlertDialog(
             onDismissRequest = { pendingRestoreRaw = null },
             title = { Text("恢复这份备份？") },
-            text = { Text("当前所有待办与笔记会被替换，替换前会自动留一份快照（可在「从上一版恢复」里找回）。") },
+            text = {
+                Text(
+                    "当前待办、笔记与外观设置会被替换（回收站会清空）。" +
+                        "恢复前的数据可以通过恢复后的「撤销这次恢复」找回。"
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -385,8 +468,8 @@ internal fun SettingsScreen(
                             is RestoreOutcome.Failed -> "恢复失败：${result.message}"
                             null -> "恢复失败：文件内容异常"
                         }
-                        lastBackup = lastBackupAt(context)
-                        snapshotAt = latestSnapshotAt(context)
+                        canUndoRestore = result is RestoreOutcome.Success
+                        refreshAfterDataReplace()
                         pendingRestoreRaw = null
                     },
                     colors = ButtonDefaults.textButtonColors(

@@ -315,6 +315,14 @@ internal fun reserveLoadedTodoIds(items: List<TodoItem>) {
     todoIdSequence.updateAndGet { current -> maxOf(current, largestId) }
 }
 
+/** 笔记与内嵌待办和待办共用同一个 ID 序列，恢复数据后同样要把序列顶到最大值之上。 */
+internal fun reserveLoadedNoteIds(notes: List<NoteItem>) {
+    val largestId = notes.flatMap { note ->
+        listOf(note.id) + note.embeddedTodos.map { it.id }
+    }.maxOrNull() ?: return
+    todoIdSequence.updateAndGet { current -> maxOf(current, largestId) }
+}
+
 internal fun readAppearance(context: Context): AppearanceMode =
     AppearanceMode.entries.firstOrNull {
         it.name == context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

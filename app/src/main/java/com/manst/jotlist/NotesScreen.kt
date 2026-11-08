@@ -278,11 +278,12 @@ internal fun NotesScreen(
             onEmbeddedTodoChecked = { todoId, isDone ->
                 val index = notes.indexOfFirst { it.id == note.id }
                 if (index >= 0) {
+                    // 勾选笔记内待办不算「编辑笔记」，不能更新 updatedAt：
+                    // 否则未恢复的草稿会被判定为旧草稿，提示被跳过且被清理，写了一半的内容静默丢失。
                     val updatedNote = note.copy(
                         embeddedTodos = note.embeddedTodos.map { todo ->
                             if (todo.id == todoId) todo.copy(isDone = isDone) else todo
-                        },
-                        updatedAt = System.currentTimeMillis()
+                        }
                     )
                     notes[index] = updatedNote
                     detailTarget = updatedNote
@@ -358,8 +359,9 @@ internal fun NotesScreen(
                                     affectedTodoIds = affectedTodoIds
                                 )
                             )
-                            clearEditorDraft(context, noteDraftKey(note.id))
                         }
+                        // 草稿清理与 payload 是否捕获成功无关：笔记都删了，草稿不能留。
+                        clearEditorDraft(context, noteDraftKey(note.id))
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
@@ -707,7 +709,9 @@ internal fun NoteEditorScreen(
             title.isNotBlank() || body.isNotBlank() ||
                 tags.isNotEmpty() || embeddedTodos.isNotEmpty()
         } else {
-            title != initialNote.title || body != initialNote.body ||
+            // 保存时会 trim 标题/正文，这里也按 trim 后比较，避免只多了个空格就产生「草稿」/
+            // 「未保存修改」的误提示。
+            title.trim() != initialNote.title || body.trim() != initialNote.body ||
                 tags.toList() != initialNote.tags ||
                 embeddedTodos.toList() != initialNote.embeddedTodos ||
                 isMarkdown != initialNote.isMarkdown
@@ -740,8 +744,9 @@ internal fun NoteEditorScreen(
     val dirty = if (initialNote == null) {
         title.isNotBlank() || body.isNotBlank() || tags.isNotEmpty() || embeddedTodos.isNotEmpty()
     } else {
-        title != initialNote.title ||
-            body != initialNote.body ||
+        // 与保存逻辑一致：trim 后比较，纯尾随空白不算未保存修改
+        title.trim() != initialNote.title ||
+            body.trim() != initialNote.body ||
             tags.toList() != initialNote.tags ||
             embeddedTodos.toList() != initialNote.embeddedTodos ||
             isMarkdown != initialNote.isMarkdown

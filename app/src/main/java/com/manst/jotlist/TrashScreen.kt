@@ -41,6 +41,7 @@ internal fun TrashScreen(
     val context = LocalContext.current
     var entries by remember { mutableStateOf(loadTrash(context)) }
     var showClearConfirm by remember { mutableStateOf(false) }
+    var pendingPurge by remember { mutableStateOf<TrashEntry?>(null) }
 
     fun reload() {
         entries = loadTrash(context)
@@ -101,6 +102,33 @@ internal fun TrashScreen(
             )
         }
 
+        pendingPurge?.let { target ->
+            AlertDialog(
+                onDismissRequest = { pendingPurge = null },
+                title = { Text("永久删除？") },
+                text = { Text("这条记录将被永久删除，无法恢复。") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            purgeTrashEntry(context, target)
+                            pendingPurge = null
+                            reload()
+                        },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.testTag("trash_purge_confirm")
+                    ) { Text("永久删除") }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { pendingPurge = null },
+                        modifier = Modifier.testTag("trash_purge_cancel")
+                    ) { Text("取消") }
+                }
+            )
+        }
+
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -117,8 +145,8 @@ internal fun TrashScreen(
                         reload()
                     },
                     onDelete = {
-                        purgeTrashEntry(context, entry)
-                        reload()
+                        // 永久删除不可撤销：先弹确认，和「清空回收站」保持一致
+                        pendingPurge = entry
                     }
                 )
             }
