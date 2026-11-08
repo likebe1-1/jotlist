@@ -6,7 +6,7 @@
 |---|---|
 | 应用名称 | Jotlist |
 | 包名 | com.manst.jotlist |
-| 版本 | 7.0（versionCode 7） |
+| 版本 | 7.3（versionCode 10） |
 | 分类 | 效率 / 生产力 |
 | 价格 | 免费，无内购，无广告 |
 | 支持系统 | Android 8.0（API 26）及以上 |
@@ -100,21 +100,23 @@ Light, dark or system theme, three list densities (compact / standard / comforta
 
 ---
 
-## 更新说明（What's new / 7.0）
+## 更新说明（What's new / 7.3）
 
 **中文**
 
-> 7.0
-> · 任务编辑器重做：字段行布局、三段优先级、截止快捷项（今天 / 明天 / 下周一），提醒可关闭，子任务回车即添加
-> · 笔记编辑器重做：吸底排版工具条（标题 / 加粗 / 列表 / 待办 / 预览），标签 chips，内嵌待办，返回保护
-> · 修复关闭提醒不生效、快速收集未自动聚焦、搜索键盘不收起、撤销不恢复统计与提醒等问题
+> 7.3
+> · 修复回收站/备份恢复后列表不刷新导致恢复的数据被自动保存覆盖的严重问题
+> · 恢复备份现在先校验、失败自动回滚，坏文件不会清空数据
+> · 「从上一版恢复」先确认，恢复后可一键「撤销这次恢复」
+> · 修复恢复已完成重复任务丢提醒、恢复笔记清空待办关联、草稿误提示等问题
 
 **English**
 
-> 7.0
-> · Redesigned task editor: field rows, segmented priority, quick due presets, reminders can be turned off, add subtasks with Enter
-> · Redesigned note editor: sticky formatting toolbar (heading / bold / list / todo / preview), tag chips, inline todos, back protection
-> · Fixed: “reminder off” not persisting, quick capture not focusing, search keyboard not hiding, undo not restoring stats/reminders
+> 7.3
+> · Fixed a data-loss bug where restored trash/backup items could be overwritten by the next autosave
+> · Backup restore now validates first and rolls back on failure, so a corrupt file can't wipe data
+> · “Restore previous version” asks for confirmation and can be undone once
+> · Fixed missing recurring reminders after restore, note restore wiping task links, and false draft prompts
 
 ---
 
