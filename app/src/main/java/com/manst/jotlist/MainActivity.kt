@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.platform.testTag
@@ -107,11 +109,12 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     val snackbarHostState = remember { SnackbarHostState() }
+                    val isWide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 840
                     Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     bottomBar = {
-                        if (!noteEditorVisible) {
+                        if (!isWide && !noteEditorVisible) {
                             // 底栏背景要一并覆盖到系统导航条区域，否则会出现一条白边。
                             Surface(color = NavigationBarDefaults.containerColor) {
                                 NavigationBar(
@@ -146,6 +149,27 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 ) { innerPadding ->
+                    Row(Modifier.fillMaxSize()) {
+                        if (isWide && !noteEditorVisible) {
+                            AppNavigationRail(
+                                selected = destination,
+                                onSelect = { destination = it }
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.TopCenter
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .widthIn(max = 840.dp)
+                                        .fillMaxHeight()
+                                ) {
                     AnimatedContent(
                         targetState = destination,
                         transitionSpec = {
@@ -227,9 +251,47 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
+                                }
+                            }
+                        }
+                    }
                 }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AppNavigationRail(
+    selected: MainDestination,
+    onSelect: (MainDestination) -> Unit
+) {
+    NavigationRail(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
+    ) {
+        MainDestination.entries.forEach { tab ->
+            NavigationRailItem(
+                selected = selected == tab,
+                onClick = { onSelect(tab) },
+                colors = NavigationRailItemDefaults.colors(
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    selectedTextColor = MaterialTheme.colorScheme.onSurface
+                ),
+                icon = {
+                    Icon(
+                        imageVector = when (tab) {
+                            MainDestination.TODO -> Icons.Default.CheckCircle
+                            MainDestination.NOTES -> Icons.Default.Edit
+                            MainDestination.SEARCH -> Icons.Default.Search
+                        },
+                        contentDescription = null
+                    )
+                },
+                label = { Text(tab.label) },
+                modifier = Modifier.testTag("navigation_${'$'}{tab.label}")
+            )
         }
     }
 }
