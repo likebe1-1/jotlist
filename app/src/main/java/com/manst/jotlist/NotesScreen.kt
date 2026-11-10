@@ -1769,7 +1769,7 @@ internal fun NoteDetailScreen(
             }
             if (note.isMarkdown) {
                 Text(
-                    text = "已启用排版",
+                    text = "Markdown 格式",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )

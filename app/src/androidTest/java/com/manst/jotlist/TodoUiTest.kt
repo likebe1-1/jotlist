@@ -466,7 +466,7 @@ class TodoUiTest {
         composeRule.onAllNodesWithText("Markdown heading").assertCountEquals(0)
         composeRule.onNodeWithText(noteTitle).performClick()
 
-        composeRule.onNodeWithText("已启用排版").assertIsDisplayed()
+        composeRule.onNodeWithText("Markdown 格式").assertIsDisplayed()
         composeRule.onNodeWithText("Markdown heading").assertIsDisplayed()
         composeRule.onNodeWithText("Bold text").assertIsDisplayed()
         composeRule.onNodeWithText("• List item").assertIsDisplayed()
