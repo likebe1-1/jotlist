@@ -1800,6 +1800,7 @@ private fun daysBetween(from: Long, to: Long): Int {
 }
 
 @Composable
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 internal fun TodoEditorScreen(
     modifier: Modifier = Modifier,
     initialItem: TodoItem?,
@@ -2277,11 +2278,10 @@ internal fun TodoEditorScreen(
                     }
                 )
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 listOf(
                     "今天 18:00" to quickTodayEvening(),
