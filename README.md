@@ -9,7 +9,7 @@
 一款克制的 Android 待办 + 笔记应用。没有账号，没有广告，没有云端。
 
 [![Android CI](https://github.com/likebe1-1/jotlist/actions/workflows/android.yml/badge.svg)](https://github.com/likebe1-1/jotlist/actions/workflows/android.yml)
-![version](https://img.shields.io/badge/version-7.3-4C5FD5)
+![version](https://img.shields.io/badge/version-7.4-4C5FD5)
 ![minSdk](https://img.shields.io/badge/minSdk-26%20(Android%208.0)-3DDC84)
 ![targetSdk](https://img.shields.io/badge/targetSdk-35-3DDC84)
 ![license](https://img.shields.io/badge/license-MIT-blue)
@@ -109,6 +109,15 @@ ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedDebugAndroidTest
 ```
 
 ## 更新日志
+
+### 7.4
+
+- **界面一致性**：今日小结 / 时间线 / 笔记详情 / 日历 / 完成统计 / 整理未完成任务六个二级页统一为 28sp 标题 + 箭头返回，与一级页同一骨架
+- **笔记编辑器**：吸底工具条改为图标按钮（标题 / 加粗 / 列表 / 插入待办 / 预览 / 帮助），360dp 窄屏不再把最右侧按钮挤出屏幕；标签支持叉号删除并在 4 秒内撤销
+- **大字号**：系统字体放大到 1.5× 时，截止快捷项自动换行，不再被裁切
+- **设置**：组件配色从右上角菜单移入「外观」，数据分组并入「备份与恢复」，版本号兜底改用构建信息（原来写死 5.0）
+- **细节**：键盘弹起时编辑页与搜索页底部不再多出一段导航栏高度的空档；笔记详情「已启用排版」改为「Markdown 格式」
+- **文档**：README 截图更新到当前界面
 
 ### 7.3
 

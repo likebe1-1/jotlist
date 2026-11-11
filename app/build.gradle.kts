@@ -22,8 +22,8 @@ android {
         applicationId = "com.manst.jotlist"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "7.3"
+        versionCode = 11
+        versionName = "7.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
