@@ -369,10 +369,15 @@ internal fun SettingsScreen(
                 }
             )
             backupMessage?.let { message ->
+                val failed = message.contains("失败")
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (failed) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    }
                 )
             }
             if (canUndoRestore) {

@@ -206,6 +206,9 @@ private fun TrashRow(
                 ) { Text("恢复") }
                 TextButton(
                     onClick = onDelete,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
                     modifier = Modifier.testTag("trash_delete_${entry.id}")
                 ) { Text("永久删除") }
             }

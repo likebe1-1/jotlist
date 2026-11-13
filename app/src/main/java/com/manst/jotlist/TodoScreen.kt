@@ -1684,7 +1684,8 @@ internal fun TodoRow(
             Box {
                 IconButton(
                     onClick = { menuExpanded = true },
-                    modifier = Modifier.size(density.controlSize)
+                    // 触控热区按无障碍标准 48dp，视觉图标大小不变
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         Icons.Default.MoreVert,
@@ -1763,7 +1764,7 @@ internal fun TodoRow(
                             checked = subtask.isDone,
                             onCheckedChange = { onSubtaskChecked(subtask.id, it) },
                             modifier = Modifier
-                                .size(density.controlSize - 6.dp)
+                                .size(48.dp)
                                 .semantics {
                                     contentDescription =
                                         "标记步骤${subtask.text}${if (subtask.isDone) "为未完成" else "为已完成"}"
@@ -1979,7 +1980,24 @@ internal fun TodoEditorScreen(
         AlertDialog(
             onDismissRequest = { pendingDraft = null },
             title = { Text("恢复上次的草稿？") },
-            text = { Text("这个任务上次没有保存完，可以接着编辑，也可以丢掉重新开始。") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("这个任务上次没有保存完，可以接着编辑，也可以丢掉重新开始。")
+                    Text(
+                        "上次编辑于 ${formatMonthDay(draft.savedAt)} ${formatDueTime(draft.savedAt)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    val summary = runCatching { todoFromJson(draft.payload) }.getOrNull()?.text?.trim()
+                    if (!summary.isNullOrBlank()) {
+                        Text(
+                            "「${summary.take(30)}」",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
