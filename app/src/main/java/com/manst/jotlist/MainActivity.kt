@@ -109,7 +109,9 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     val snackbarHostState = remember { SnackbarHostState() }
-                    val isWide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 840
+                    val isWide = isWideScreen(
+                        androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
+                    )
                     Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -263,7 +265,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun AppNavigationRail(
+internal fun AppNavigationRail(
     selected: MainDestination,
     onSelect: (MainDestination) -> Unit
 ) {
@@ -290,8 +292,11 @@ private fun AppNavigationRail(
                     )
                 },
                 label = { Text(tab.label) },
-                modifier = Modifier.testTag("navigation_${'$'}{tab.label}")
+                modifier = Modifier.testTag("navigation_${tab.label}")
             )
         }
     }
 }
+
+/** 宽屏阈值：>= 840dp 用 NavigationRail，否则底部 NavigationBar。 */
+internal fun isWideScreen(widthDp: Int): Boolean = widthDp >= 840
