@@ -89,6 +89,37 @@ internal fun NotesScreen(
     var quickCaptureText by rememberSaveable { mutableStateOf("") }
     var todoLoadWarning by remember { mutableStateOf(false) }
 
+    /** 删除笔记：搬进回收站、清掉关联待办、清草稿、刷新组件。详情页与编辑器共用。 */
+    fun moveNoteToTrash(note: NoteItem) {
+        val trashedPayload = captureNotePayload(context, note.id)
+        val affectedTodoIds = todos.filter { it.linkedNoteId == note.id }.map { it.id }
+        notes.removeAll { it.id == note.id }
+        var todosChanged = false
+        todos.indices.forEach { index ->
+            if (todos[index].linkedNoteId == note.id) {
+                todos[index] = todos[index].copy(linkedNoteId = null)
+                todosChanged = true
+            }
+        }
+        if (todosChanged) {
+            saveTodoList(context, todos.toList())
+            TodoWidgetProvider.refresh(context)
+        }
+        trashedPayload?.let { payload ->
+            appendTrash(
+                context,
+                TrashEntry(
+                    kind = TrashKind.NOTE,
+                    id = note.id,
+                    payload = payload,
+                    deletedAt = System.currentTimeMillis(),
+                    affectedTodoIds = affectedTodoIds
+                )
+            )
+        }
+        clearEditorDraft(context, noteDraftKey(note.id))
+    }
+
     LaunchedEffect(initialOpenQuickCapture) {
         if (initialOpenQuickCapture) {
             showQuickCapture = true
@@ -240,6 +271,16 @@ internal fun NotesScreen(
                     onEditorVisibilityChange(false)
                 }
                 editingFromDetail = false
+            },
+            onDelete = editorTarget?.let { target ->
+                {
+                    moveNoteToTrash(target)
+                    showEditor = false
+                    editorTarget = null
+                    detailTarget = null
+                    editingFromDetail = false
+                    onEditorVisibilityChange(false)
+                }
             }
         )
         return
@@ -337,36 +378,7 @@ internal fun NotesScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // 删除前留一份原始 JSON，并记下被连累的待办关系
-                        val trashedPayload = captureNotePayload(context, note.id)
-                        val affectedTodoIds = todos.filter { it.linkedNoteId == note.id }.map { it.id }
-                        notes.remove(note)
-                        var todosChanged = false
-                        todos.indices.forEach { index ->
-                            if (todos[index].linkedNoteId == note.id) {
-                                todos[index] = todos[index].copy(linkedNoteId = null)
-                                todosChanged = true
-                            }
-                        }
-                        if (todosChanged) {
-                            saveTodoList(context, todos.toList())
-                            TodoWidgetProvider.refresh(context)
-                        }
-                        pendingDelete = null
-                        trashedPayload?.let { payload ->
-                            appendTrash(
-                                context,
-                                TrashEntry(
-                                    kind = TrashKind.NOTE,
-                                    id = note.id,
-                                    payload = payload,
-                                    deletedAt = System.currentTimeMillis(),
-                                    affectedTodoIds = affectedTodoIds
-                                )
-                            )
-                        }
-                        // 草稿清理与 payload 是否捕获成功无关：笔记都删了，草稿不能留。
-                        clearEditorDraft(context, noteDraftKey(note.id))
+                        moveNoteToTrash(note)
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
@@ -669,7 +681,8 @@ internal fun NoteEditorScreen(
     modifier: Modifier = Modifier,
     initialNote: NoteItem?,
     onDismiss: () -> Unit,
-    onSave: (NoteItem) -> Unit
+    onSave: (NoteItem) -> Unit,
+    onDelete: (() -> Unit)? = null
 ) {
     // 与待办编辑器同理：草稿只活在本次编辑会话，避免进程被杀后把旧草稿塞回来。
     var title by remember(initialNote?.id) {
@@ -816,7 +829,27 @@ internal fun NoteEditorScreen(
         AlertDialog(
             onDismissRequest = { pendingDraft = null },
             title = { Text("恢复上次的草稿？") },
-            text = { Text("这篇笔记上次没有保存完，可以接着写，也可以丢掉重新开始。") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("这篇笔记上次没有保存完，可以接着写，也可以丢掉重新开始。")
+                    Text(
+                        "上次编辑于 ${formatMonthDay(draft.savedAt)} ${formatDueTime(draft.savedAt)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    val summary = runCatching { noteFromJson(draft.payload) }.getOrNull()
+                        ?.let { it.title.ifBlank { it.body.lineSequence().firstOrNull().orEmpty() } }
+                        ?.trim()
+                        ?.take(30)
+                    if (!summary.isNullOrBlank()) {
+                        Text(
+                            "「$summary」",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -1151,6 +1184,17 @@ internal fun NoteEditorScreen(
                         Icon(Icons.Default.Delete, contentDescription = "删除笔记待办")
                     }
                 }
+            }
+            if (onDelete != null) {
+                TextButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .testTag("delete_note")
+                ) { Text("删除笔记") }
             }
             Spacer(Modifier.height(32.dp))
         }
