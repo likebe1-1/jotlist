@@ -15,6 +15,11 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import com.manst.jotlist.ui.theme.JotlistMotion
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.background
@@ -22,7 +27,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Repeat
@@ -905,7 +910,11 @@ internal fun TodoAppScreen(
         }.map { it.id }.toSet()
         // 以前是有逾期任务就自动跳到整理页，会打断"我只是想加一条"的场景；
         // 改成可关闭的横幅，既提醒又不夺走控制权。
-        if (triageCount > 0 && !triageBannerDismissed) {
+        AnimatedVisibility(
+            visible = triageCount > 0 && !triageBannerDismissed,
+            enter = fadeIn(tween(JotlistMotion.base, easing = JotlistMotion.standardEasing)),
+            exit = fadeOut(tween(JotlistMotion.fast, easing = JotlistMotion.standardEasing))
+        ) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1112,6 +1121,7 @@ internal fun TodoAppScreen(
                 }
             }
             items(visibleTodos, key = { it.id }) { item ->
+                Box(Modifier.animateItem()) {
                 TodoRow(
                     density = density,
                     item = item,
@@ -1197,6 +1207,7 @@ internal fun TodoAppScreen(
                         }
                     }
                 )
+                }
             }
         }
         }
@@ -2101,7 +2112,7 @@ internal fun TodoEditorScreen(
             }
             Text(
                 text = if (initialItem == null) "新建任务" else "编辑任务",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .weight(1f)
@@ -2426,12 +2437,14 @@ internal fun TodoEditorScreen(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(8.dp))
 
-            Text(
-                text = "步骤 ${subtasks.count { it.isDone }}/${subtasks.size}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
+            if (subtasks.isNotEmpty()) {
+                Text(
+                    text = "步骤 ${subtasks.count { it.isDone }}/${subtasks.size}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
             subtasks.forEachIndexed { index, subtask ->
                 Row(
                     modifier = Modifier
@@ -2561,18 +2574,6 @@ internal fun TodoEditorScreen(
 
             Spacer(Modifier.height(24.dp))
         }
-    }
-}
-
-@Composable
-private fun EditorSection(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        content()
     }
 }
 
@@ -2778,7 +2779,7 @@ private fun EditorFieldRow(
             modifier = Modifier.padding(start = 12.dp)
         )
         Icon(
-            imageVector = Icons.Default.ChevronRight,
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(18.dp)

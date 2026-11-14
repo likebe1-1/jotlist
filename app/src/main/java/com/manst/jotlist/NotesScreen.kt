@@ -600,83 +600,6 @@ internal fun applyNoteFormat(
 }
 
 @Composable
-internal fun NoteBodyEditor(
-    value: TextFieldValue,
-    onValueChange: (TextFieldValue) -> Unit,
-    isMarkdown: Boolean,
-    onAddTodo: () -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            "正文",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        if (isMarkdown) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                listOf(
-                    "标题" to "# ",
-                    "加粗" to "**",
-                    "列表" to "- "
-                ).forEach { (label, format) ->
-                    OutlinedButton(
-                        onClick = {
-                            onValueChange(
-                                if (label == "加粗") {
-                                    applyNoteFormat(value, format, format)
-                                } else {
-                                    applyNoteFormat(value, format)
-                                }
-                            )
-                        },
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier.testTag("note_format_$label")
-                    ) {
-                        Text(label)
-                    }
-                }
-                OutlinedButton(
-                    onClick = onAddTodo,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    modifier = Modifier.testTag("note_format_待办")
-                ) {
-                    Text("待办")
-                }
-            }
-        }
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = 240.dp)
-                .testTag("note_body_editor"),
-            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                lineHeight = 30.sp,
-                color = MaterialTheme.colorScheme.onSurface
-            ),
-            decorationBox = { innerTextField ->
-                Box {
-                    if (value.text.isBlank()) {
-                        Text(
-                            "在这里写下你的想法…",
-                            style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 30.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    innerTextField()
-                }
-            }
-        )
-    }
-}
-
-@Composable
 internal fun NoteEditorScreen(
     modifier: Modifier = Modifier,
     initialNote: NoteItem?,
@@ -973,7 +896,7 @@ internal fun NoteEditorScreen(
             }
             Text(
                 text = if (initialNote == null) "新建笔记" else "编辑笔记",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .weight(1f)
@@ -1736,7 +1659,7 @@ internal fun NoteDetailScreen(
             .fillMaxSize()
             .padding(horizontal = 20.dp)
     ) {
-        JotlistHeader(title = "", onBack = onBack) {
+        JotlistHeader(title = "笔记", onBack = onBack) {
             Box {
                 IconButton(
                     onClick = { menuExpanded = true },

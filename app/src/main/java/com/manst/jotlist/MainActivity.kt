@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import com.manst.jotlist.ui.theme.JotlistMotion
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.platform.testTag
@@ -175,8 +176,17 @@ class MainActivity : ComponentActivity() {
                     AnimatedContent(
                         targetState = destination,
                         transitionSpec = {
-                            fadeIn(animationSpec = tween(220)) togetherWith
-                                fadeOut(animationSpec = tween(160))
+                            fadeIn(
+                                    animationSpec = tween(
+                                        JotlistMotion.base,
+                                        easing = JotlistMotion.standardEasing
+                                    )
+                                ) togetherWith fadeOut(
+                                    animationSpec = tween(
+                                        JotlistMotion.fast,
+                                        easing = JotlistMotion.standardEasing
+                                    )
+                                )
                         },
                         label = "main_destination_transition"
                     ) { page ->

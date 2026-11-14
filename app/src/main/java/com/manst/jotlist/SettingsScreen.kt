@@ -82,7 +82,7 @@ internal fun SettingsScreen(
     var dndEnd by remember(initialDnd) { mutableStateOf(initialDnd.endMinute) }
     val onChanged = rememberUpdatedState(onDoNotDisturbChanged)
 
-    // 右上角三点菜单：组件配色
+    // 外观卡内的组件配色入口
     var paletteDialogVisible by remember { mutableStateOf(false) }
     var draftPalette by remember { mutableStateOf(readWidgetPalette(context)) }
     var appliedPalette by remember { mutableStateOf(readWidgetPalette(context)) }
@@ -348,7 +348,7 @@ internal fun SettingsScreen(
                 value = "整体替换当前数据，替换前会自动留一份快照",
                 actionLabel = "选择文件",
                 actionTestTag = "settings_backup_restore",
-                onAction = { importLauncher.launch(arrayOf("application/json")) }
+                onAction = { importLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }
             )
             SettingsRow(
                 title = "从上一版恢复",
